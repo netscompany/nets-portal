@@ -10,7 +10,7 @@
   const STORAGE_KEYS = {
     AUTH: 'nets_auth',
     THEME: 'nets_theme',
-    APPS: 'nets_apps_state_v2',
+    APPS: 'nets_apps_state_v3',
     ONBOARDED: 'nets_onboarded',
     DEALS: 'nets_crm_deals_v2',
     CHATS: 'nets_chat_history_v2'
@@ -32,6 +32,26 @@
     streakDays: 14,
     level: 'Líder Platinum'
   };
+
+  function resolveUser(auth) {
+    const u = auth && typeof auth === 'object' ? auth : {};
+    const name = (u.name || u.displayName || DEFAULT_USER.name || 'Usuario').trim();
+    const parts = name.split(/\s+/).filter(Boolean);
+    const initials = ((parts[0] && parts[0][0]) || 'U') + ((parts[1] && parts[1][0]) || '');
+    const avatar = (u.avatar && String(u.avatar) !== 'undefined')
+      ? String(u.avatar)
+      : initials.toUpperCase();
+    return {
+      name,
+      shortName: (u.shortName && String(u.shortName) !== 'undefined') ? u.shortName : (parts[0] || 'Usuario'),
+      email: u.email || DEFAULT_USER.email,
+      role: u.role || DEFAULT_USER.role,
+      avatar,
+      city: u.city || DEFAULT_USER.city,
+      streakDays: u.streakDays || DEFAULT_USER.streakDays || 0,
+      level: u.level || DEFAULT_USER.level
+    };
+  }
 
   // Producto y mock compartido (única fuente de verdad entre pantallas)
   const PRODUCT = {
@@ -74,7 +94,7 @@
       id: 'inventory',
       title: 'Inventario',
       icon: 'box',
-      enabled: true,
+      enabled: false,
       route: '#/inventory',
       badge: '4 bodegas',
       desc: 'Control multisede Montevideo, Guayabal, Yumbo y Fontibón'
@@ -83,7 +103,7 @@
       id: 'invoice',
       title: 'Facturación DIAN',
       icon: 'receipt',
-      enabled: true,
+      enabled: false,
       route: '#/invoice',
       badge: 'UBL 2.1',
       desc: 'Emisión electrónica, CUFE, eventos Radian y notas crédito'
@@ -726,7 +746,7 @@
     if (btn) btn.innerHTML = icon(next === 'dark' ? 'sun' : 'moon', 'currentColor', 18);
   }
 
-  // --- Banner ÚNICO: "Vista previa · Datos de demostración" + Instalar ---
+  // --- Banner ÚNICO: "Vista previa" + Instalar ---
   function renderSingleTopBanner() {
     let banner = document.getElementById('nets-top-banner');
     if (!banner) {
@@ -740,7 +760,7 @@
     banner.innerHTML = `
       <div class="nets-banner-inner">
         <span class="nets-banner-tag">MODO DEMO</span>
-        <span class="nets-banner-text">Vista previa · Datos de demostración</span>
+        <span class="nets-banner-text nets-banner-text-quiet">Vista previa</span>
         ${showInstall ? `
           <button id="nets-btn-pwa-install" class="nets-btn-banner-install" aria-label="Instalar Nets Business Core">
             ${icon('download', '#FFFFFF', 16)}
@@ -800,7 +820,11 @@
     // Barra de navegación móvil inferior: Solo items habilitados principales
     const bottomNavItems = [
       { route: '#/home', iconName: 'home', label: 'Inicio' },
-      ...enabledApps.slice(0, 3).map(a => ({ route: a.route, iconName: a.icon, label: a.title })),
+      ...enabledApps.slice(0, 3).map(a => ({
+        route: a.route,
+        iconName: a.icon,
+        label: a.id === 'crm' ? 'CRM' : (a.id === 'chat' ? 'WhatsApp' : a.title.split(' ')[0])
+      })),
       { route: '#/apps', iconName: 'apps', label: 'Apps' }
     ];
 
@@ -838,10 +862,10 @@
 
           <div class="nets-sidebar-footer">
             <div class="nets-user-brief">
-              <div class="nets-user-avatar">${auth ? auth.avatar : 'US'}</div>
+              <div class="nets-user-avatar">${resolveUser(auth).avatar}</div>
               <div class="nets-user-meta">
-                <span class="nets-user-name">${auth ? auth.name : 'Usuario'}</span>
-                <span class="nets-user-role">${auth ? auth.role : 'Corporativo'}</span>
+                <span class="nets-user-name">${resolveUser(auth).name}</span>
+                <span class="nets-user-role">${resolveUser(auth).role}</span>
               </div>
             </div>
             <button class="nets-btn-logout-sidebar" id="btn-logout" title="Cerrar sesión" aria-label="Cerrar sesión">
@@ -863,17 +887,12 @@
             </div>
 
             <div class="nets-topbar-right">
-              <div class="nets-streak-pill" title="Racha operativa activa">
-                ${icon('award', 'var(--blue)', 18)}
-                <span>14 días seguidos</span>
-              </div>
-
               <button class="nets-btn-icon" id="btn-toggle-theme" title="Alternar tema" aria-label="Alternar tema claro u oscuro">
                 ${icon(isDark ? 'sun' : 'moon', 'currentColor', 18)}
               </button>
 
-              <div class="nets-mobile-avatar" id="btn-user-popover" role="button" tabindex="0" aria-label="Menú de usuario">
-                ${auth ? auth.avatar : 'US'}
+              <div class="nets-mobile-avatar" id="btn-user-popover" role="button" tabindex="0" aria-label="Menú de usuario ${resolveUser(auth).name}">
+                ${resolveUser(auth).avatar}
               </div>
             </div>
           </header>
@@ -949,124 +968,63 @@
   }
 
   // --- Vista 2: Home (#/home) ---
+  function renderLockedGate(title) {
+    const q = encodeURIComponent('Hola Nets Business Core, quiero activar ' + title);
+    const content = `
+      <div class="nets-locked-gate">
+        <div class="nets-locked-card">
+          <div style="font-size:32px;margin-bottom:12px" aria-hidden="true">🔒</div>
+          <h3 style="margin:0 0 8px;color:var(--navy)">${title}</h3>
+          <p class="muted" style="margin:0 0 18px;font-size:14px">Contacta a Nets Business Core para activar esta función</p>
+          <a class="nets-btn-wa" href="https://wa.me/573200008899?text=${q}" target="_blank" rel="noopener">Contactar por WhatsApp</a>
+        </div>
+      </div>`;
+    return wrapLayout(title, 'Módulo no activo', content, '#/apps');
+  }
+
   function renderHome() {
-    const auth = getStoredAuth() || DEFAULT_USER;
-    const greeting = getGreeting(auth.shortName || 'Ger');
-    const enabledApps = getAppsState().filter(a => a.enabled);
+    const user = resolveUser(getStoredAuth());
+    const greeting = getGreeting(user.shortName);
     const kpis = computeMockKpis(getDeals());
-    const goalTarget = kpis.goalTarget;
-    const goalCurrent = kpis.goalCurrent;
-    const goalPercent = Math.round((goalCurrent / goalTarget) * 100);
-
+    const pct = Math.round((kpis.goalCurrent / kpis.goalTarget) * 100);
     const contentHtml = `
-      <div class="nets-home-grid">
-        <!-- Saludo e Insignia -->
-        <section class="nets-welcome-card fade-up">
-          <div class="nets-welcome-info">
-            <div class="nets-badge-streak">
-              ${icon('award', 'var(--blue)', 16)}
-              <span>Racha Comercial: ${auth.streakDays || 14} días cumpliendo metas</span>
-            </div>
-            <h2 class="nets-welcome-greeting">${greeting}</h2>
-            <p class="nets-welcome-text">
-              El pipeline nacional registra un avance ponderado del <strong>${goalPercent}%</strong> respecto a la meta trimestral fijada para Colombia.
-            </p>
-          </div>
+      <div class="nets-home-simple">
+        <section class="nets-welcome-card" style="padding:18px 20px">
+          <h2 class="nets-welcome-greeting" style="margin:0 0 4px;font-size:22px">${greeting}</h2>
+          <p class="nets-welcome-text" style="margin:0">Resumen operativo · ${kpis.goalLabel}</p>
+        </section>
 
-          <!-- Meta Mensual Progress -->
-          <div class="nets-goal-box">
-            <div class="nets-goal-header">
-              <span class="nets-goal-label">${kpis.goalLabel}</span>
-              <span class="nets-goal-values"><strong>${formatCOP(goalCurrent)}</strong> / ${formatCOP(goalTarget)}</span>
-            </div>
-            <div class="nets-progress-track">
-              <div class="nets-progress-fill" style="width: ${goalPercent}%"></div>
-            </div>
-            <div class="nets-goal-foot">
-              <span>${kpis.goalFoot}</span>
-              <span>${goalPercent}%</span>
-            </div>
+        <section class="nets-kpis-simple-grid">
+          <div class="nets-kpi-simple">
+            <div class="nets-kpi-label">Ventas del mes vs meta</div>
+            <div class="nets-kpi-val">${formatCOP(kpis.salesMonth)}</div>
+            <div class="nets-kpi-meta">Meta ${formatCOP(kpis.goalTarget)} · ${pct}%</div>
+            <div class="nets-goal-mini" aria-hidden="true"><span style="width:${pct}%"></span></div>
+          </div>
+          <div class="nets-kpi-simple">
+            <div class="nets-kpi-label">Oportunidades activas</div>
+            <div class="nets-kpi-val">${kpis.activeOpps}</div>
+            <div class="nets-kpi-meta">${kpis.newOpps} en pipeline</div>
+          </div>
+          <div class="nets-kpi-simple">
+            <div class="nets-kpi-label">Conversaciones WhatsApp</div>
+            <div class="nets-kpi-val">${kpis.botChats.toLocaleString('es-CO')}</div>
+            <div class="nets-kpi-meta">${kpis.botSla}</div>
+          </div>
+          <div class="nets-kpi-simple">
+            <div class="nets-kpi-label">Cotizaciones pendientes</div>
+            <div class="nets-kpi-val">${kpis.quotes}</div>
+            <div class="nets-kpi-meta">${kpis.quotesNote}</div>
           </div>
         </section>
 
-        <!-- 4 KPIs con Count-Up y Sparklines -->
-        <section class="nets-kpis-grid">
-          <div class="nets-kpi-card fade-up" style="animation-delay: 60ms">
-            <div class="nets-kpi-top">
-              <span class="nets-kpi-label">Ventas del Mes</span>
-              <span class="nets-kpi-icon">${icon('receipt', 'var(--blue)', 18)}</span>
-            </div>
-            <div class="nets-kpi-val" id="kpi-sales">${formatCOP(kpis.salesMonth)}</div>
-            <div class="nets-kpi-bottom">
-              <span class="nets-pill-up">${kpis.salesDelta}</span>
-              <canvas class="nets-sparkline" id="spark-sales"></canvas>
-            </div>
+        <section class="nets-actions-card">
+          <div class="nets-card-title-row" style="margin-bottom:12px">
+            <h3 class="nets-card-heading" style="margin:0">Próximas acciones</h3>
+            <span class="nets-tag-live">Hoy</span>
           </div>
-
-          <div class="nets-kpi-card fade-up" style="animation-delay: 120ms">
-            <div class="nets-kpi-top">
-              <span class="nets-kpi-label">Oportunidades Nuevas</span>
-              <span class="nets-kpi-icon">${icon('crm', 'var(--blue)', 18)}</span>
-            </div>
-            <div class="nets-kpi-val" id="kpi-deals">${kpis.newOpps.toLocaleString('es-CO')}</div>
-            <div class="nets-kpi-bottom">
-              <span class="nets-pill-up">+${kpis.activeOpps} activas</span>
-              <canvas class="nets-sparkline" id="spark-deals"></canvas>
-            </div>
-          </div>
-
-          <div class="nets-kpi-card fade-up" style="animation-delay: 180ms">
-            <div class="nets-kpi-top">
-              <span class="nets-kpi-label">Conversaciones Bot</span>
-              <span class="nets-kpi-icon">${icon('chat', 'var(--blue)', 18)}</span>
-            </div>
-            <div class="nets-kpi-val" id="kpi-chats">${kpis.botChats.toLocaleString('es-CO')}</div>
-            <div class="nets-kpi-bottom">
-              <span class="nets-pill-up">${kpis.botSla}</span>
-              <canvas class="nets-sparkline" id="spark-chats"></canvas>
-            </div>
-          </div>
-
-          <div class="nets-kpi-card fade-up" style="animation-delay: 240ms">
-            <div class="nets-kpi-top">
-              <span class="nets-kpi-label">Cotizaciones Emitidas</span>
-              <span class="nets-kpi-icon">${icon('box', 'var(--blue)', 18)}</span>
-            </div>
-            <div class="nets-kpi-val" id="kpi-quotes">${kpis.quotes.toLocaleString('es-CO')}</div>
-            <div class="nets-kpi-bottom">
-              <span class="nets-pill-up">${kpis.quotesNote}</span>
-              <canvas class="nets-sparkline" id="spark-quotes"></canvas>
-            </div>
-          </div>
-        </section>
-
-        <!-- Accesos Rápidos y Apps Habilitadas -->
-        <section class="nets-home-split">
-          <div class="nets-home-column fade-up" style="animation-delay: 300ms">
-            <div class="nets-card-title-row">
-              <h3 class="nets-card-heading">Módulos Habilitados</h3>
-              <a href="#/apps" class="nets-link-action">Configurar apps</a>
-            </div>
-            <div class="nets-apps-compact-grid">
-              ${enabledApps.map(app => `
-                <a href="${app.route}" class="nets-app-compact-card">
-                  <div class="nets-app-compact-icon">${icon(app.icon, '#2DAAE1', 18)}</div>
-                  <div class="nets-app-compact-texts">
-                    <span class="nets-app-compact-name">${app.title}</span>
-                    <span class="nets-app-compact-desc">${app.desc}</span>
-                  </div>
-                </a>
-              `).join('')}
-            </div>
-          </div>
-
-          <div class="nets-home-column fade-up" style="animation-delay: 360ms">
-            <div class="nets-card-title-row">
-              <h3 class="nets-card-heading">Actividad Operativa Reciente</h3>
-              <span class="nets-tag-live">Bogotá HQ</span>
-            </div>
-            <div class="nets-activity-feed">
-              ${MOCK_ACTIVITY.map(a => `
+          <div class="nets-activity-feed">
+            ${MOCK_ACTIVITY.map(a => `
               <div class="nets-activity-item">
                 <span class="nets-act-dot"></span>
                 <div class="nets-act-body">
@@ -1074,12 +1032,10 @@
                   <span class="nets-act-time">${a.time}</span>
                 </div>
               </div>`).join('')}
-            </div>
           </div>
         </section>
-      </div>
-    `;
-    return wrapLayout('Inicio', 'Panel operativo Nets Colombia', contentHtml, '#/home');
+      </div>`;
+    return wrapLayout('Inicio', 'Lo esencial de su operación', contentHtml, '#/home');
   }
 
 
@@ -1108,6 +1064,10 @@
                 </div>
                 <p style="font-size:14px;margin:0 0 8px;color:var(--muted)">${d.title}</p>
                 <strong style="color:var(--navy)">${formatCOP(d.amount)}</strong>
+                <label class="muted" style="display:block;font-size:12px;margin-top:10px">Mover a etapa</label>
+                <select class="kanban-move-menu" data-move="${d.id}" aria-label="Mover ${d.client} a otra etapa">
+                  ${CRM_STAGES.map(s => `<option value="${s.id}" ${s.id===d.stage?'selected':''}>${s.label}</option>`).join('')}
+                </select>
               </article>
             `).join('')}
           </div>
@@ -1115,7 +1075,7 @@
     }).join('');
     const content = `
       <section class="kanban-section">
-        <div class="kanban-board nets-kanban">${board}</div>
+        <div class="kanban-board kanban-board-scroll nets-kanban">${board}</div>
       </section>`;
     return wrapLayout('Oportunidades', 'Pipeline comercial · 6 etapas · arrastre para avanzar', content, '#/crm');
   }
@@ -1123,6 +1083,7 @@
   function renderChat() {
     const chats = getChats();
     const active = chats.find(c => c.id === activeChatId) || chats[0];
+    const showDetail = isMobileChatDetail || (typeof window !== 'undefined' && window.innerWidth >= 800);
     const list = chats.map(c => `
       <button class="nets-chat-list-item ${c.id === active.id ? 'active' : ''}" data-chat="${c.id}" type="button">
         <div class="nets-user-avatar" style="background:var(--blue-soft);color:var(--blue)">${c.avatar}</div>
@@ -1136,54 +1097,72 @@
         ${c.unread ? `<span class="kanban-badge" style="background:var(--blue);color:#fff">${c.unread}</span>` : ''}
       </button>`).join('');
     const msgs = (active.messages || []).map(m => `
-      <div class="chat-bubble ${m.from === 'me' ? 'me' : 'them'}" style="align-self:${m.from==='me'?'flex-end':'flex-start'};background:${m.from==='me'?'#2DAAE1':'#fff'};color:${m.from==='me'?'#fff':'var(--text)'};padding:10px 14px;border-radius:18px;max-width:80%;font-size:14px;border:1px solid var(--border)">
+      <div class="chat-bubble ${m.from === 'me' ? 'me' : 'them'}">
         ${m.text}
-        <div style="opacity:.7;font-size:12px;margin-top:4px">${m.time}</div>
+        <div class="chat-time">${m.time}</div>
       </div>`).join('');
     const content = `
       <section class="nets-chat-layout" style="display:grid;grid-template-columns:minmax(260px,320px) 1fr;gap:16px;min-height:60vh">
-        <aside class="nets-card" style="padding:12px;display:${isMobileChatDetail?'none':'flex'};flex-direction:column;gap:6px;overflow:auto">${list}</aside>
-        <div class="nets-card" style="display:${(!isMobileChatDetail && window.innerWidth<800)?'none':'flex'};flex-direction:column;padding:0;overflow:hidden">
-          <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
-            <button type="button" id="chat-back" class="nets-btn-icon" aria-label="Volver a la lista de chats" style="display:none">${icon('home','currentColor',18)}</button>
-            <div class="nets-user-avatar" style="background:var(--blue-soft);color:var(--blue)">${active.avatar}</div>
-            <div>
-              <strong>${active.name}</strong>
-              <div class="muted" style="font-size:14px">${active.company} · ${active.phone}</div>
+        <aside class="nets-card nets-chat-list-pane" style="padding:12px;display:${showDetail && window.innerWidth < 800 ? 'none' : 'flex'};flex-direction:column;gap:6px;overflow:auto">${list}</aside>
+        <div class="nets-card nets-chat-detail-pane" style="display:${(!showDetail && window.innerWidth < 800) ? 'none' : 'flex'};flex-direction:column;padding:0;overflow:hidden;min-height:55vh">
+          <div class="nets-chat-header">
+            <button type="button" class="nets-chat-back" id="btn-chat-back" aria-label="Volver a la bandeja" style="display:${window.innerWidth < 800 ? 'grid' : 'none'}">
+              ${icon('arrowLeft', 'currentColor', 18)}
+            </button>
+            <div class="nets-user-avatar" style="width:36px;height:36px;font-size:12px;background:var(--blue-soft);color:var(--blue)">${active.avatar}</div>
+            <div style="min-width:0;flex:1">
+              <strong style="display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${active.name}</strong>
+              <span class="muted" style="font-size:13px">${active.phone || active.company}</span>
             </div>
           </div>
-          <div id="chat-messages" style="flex:1;display:flex;flex-direction:column;gap:10px;padding:16px;overflow:auto;background:#F7FAFC">${msgs}</div>
-          <form id="chat-send-form" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)">
-            <input id="chat-input" class="nets-input" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px" placeholder="Escriba un mensaje…" autocomplete="off" />
-            <button class="btn-accent" type="submit">Enviar</button>
+          <div class="nets-chat-thread" id="nets-chat-thread">${msgs}</div>
+          <form id="nets-chat-form" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);background:var(--surface)">
+            <input class="nets-input" id="nets-chat-input" placeholder="Escriba un mensaje..." autocomplete="off" style="flex:1" />
+            <button type="submit" class="nets-btn nets-btn-primary">Enviar</button>
           </form>
         </div>
-      </section>
-      <style>@media(max-width:800px){.nets-chat-layout{grid-template-columns:1fr!important}}</style>`;
+      </section>`;
     return wrapLayout('WhatsApp', 'Bandeja omnicanal y bot Nets IA', content, '#/chat');
   }
 
   function renderApps() {
     const apps = getAppsState();
-    const rows = apps.map(a => `
+    const rows = apps.map(a => {
+      if (!a.enabled) {
+        const q = encodeURIComponent('Hola Nets Business Core, quiero activar ' + a.title);
+        return `
+        <button type="button" class="nets-card nets-app-row locked" data-locked-app="${a.id}" style="display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;text-align:left;cursor:pointer">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div>${icon(a.icon,'var(--muted)', 18)}</div>
+            <div>
+              <strong>${a.title}</strong>
+              <p class="muted app-card-desc" style="margin:4px 0 0;font-size:14px">${a.desc}</p>
+            </div>
+          </div>
+          <span class="nets-app-lock-badge">🔒 Bloqueada</span>
+        </button>`;
+      }
+      return `
       <div class="nets-card" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
-        <div style="display:flex;gap:12px;align-items:center">
-          <div>${icon(a.icon,'#2DAAE1', 18)}</div>
+        <a href="${a.route}" style="display:flex;gap:12px;align-items:center;flex:1;min-width:0">
+          <div>${icon(a.icon,'var(--blue)', 18)}</div>
           <div>
             <strong>${a.title}</strong>
             <p class="muted app-card-desc" style="margin:4px 0 0;font-size:14px">${a.desc}</p>
           </div>
-        </div>
-        <label class="nets-toggle" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">
-          <input type="checkbox" data-app-toggle="${a.id}" ${a.enabled?'checked':''} />
-          <span class="muted" style="font-size:14px">${a.enabled?'Activa':'Inactiva'}</span>
-        </label>
-      </div>`).join('');
-    const content = `<div style="display:flex;flex-direction:column;gap:12px">${rows}</div>`;
-    return wrapLayout('Administración de aplicaciones', 'Active o pause módulos del portal sin tocar Odoo', content, '#/apps');
+        </a>
+        <span class="nets-app-lock-badge" style="color:var(--blue);background:var(--blue-soft)">Activa</span>
+      </div>`;
+    }).join('');
+    const content = `<div style="display:flex;flex-direction:column;gap:12px">${rows}</div>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">Las funciones bloqueadas se activan con el equipo Nets Business Core.</p>`;
+    return wrapLayout('Administración de aplicaciones', 'Módulos de su portal', content, '#/apps');
   }
 
   function renderInventory() {
+    const appState = getAppsState().find(a => a.id === 'inventory');
+    if (!appState || !appState.enabled) return renderLockedGate('Inventario');
+
     const rows = INITIAL_INVENTORY.map(i => `
       <tr>
         <td><strong>${i.sku}</strong></td>
@@ -1205,6 +1184,9 @@
   }
 
   function renderInvoice() {
+    const appState = getAppsState().find(a => a.id === 'invoice');
+    if (!appState || !appState.enabled) return renderLockedGate('Facturación DIAN');
+
     const rows = INITIAL_INVOICES.map(f => `
       <tr>
         <td><strong>${f.prefix}-${f.number}</strong></td>
@@ -1227,10 +1209,11 @@
   }
 
   function renderSupport() {
+    const appState = getAppsState().find(a => a.id === 'support');
+    if (!appState || !appState.enabled) return renderLockedGate('Casos y Soporte');
     const content = `
       <div class="nets-card">
-        <p class="muted" style="font-size:14px">El módulo Casos y Soporte está desactivado. Actívelo en Administración de aplicaciones.</p>
-        <a class="btn-accent" href="#/apps" style="display:inline-block;margin-top:12px;text-decoration:none">Ir a apps</a>
+        <p class="muted" style="font-size:14px">Mesa de servicio ITIL — tickets N1 a N3.</p>
       </div>`;
     return wrapLayout('Casos', 'Mesa de servicio ITIL', content, '#/support');
   }
@@ -1256,47 +1239,8 @@
       };
     }
 
-    if (route === '#/home') {
-      countUp(document.getElementById('kpi-sales'), computeMockKpis(getDeals()).salesMonth, 900, true);
-      countUp(document.getElementById('kpi-deals'), computeMockKpis(getDeals()).newOpps, 700, false);
-      countUp(document.getElementById('kpi-chats'), computeMockKpis(getDeals()).botChats, 800, false);
-      countUp(document.getElementById('kpi-quotes'), computeMockKpis(getDeals()).quotes, 700, false);
-      const sparks = [
-        ['spark-sales', [12,18,15,22,28,26,31]],
-        ['spark-deals', [4,6,5,8,7,9,11]],
-        ['spark-chats', [40,55,48,62,70,68,80]],
-        ['spark-quotes', [2,3,4,5,4,6,7]]
-      ];
-      sparks.forEach(([id, data]) => {
-        const el = document.getElementById(id);
-        if (el) renderSparkline(el, data);
-      });
-    }
-
     if (route === '#/crm') {
-      let dragId = null;
-      document.querySelectorAll('.kanban-card').forEach(card => {
-        card.addEventListener('dragstart', () => { dragId = card.dataset.id; card.style.opacity = '.5'; });
-        card.addEventListener('dragend', () => { card.style.opacity = '1'; });
-      });
-      document.querySelectorAll('[data-drop]').forEach(zone => {
-        zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.outline = '2px dashed #2DAAE1'; });
-        zone.addEventListener('dragleave', () => { zone.style.outline = 'none'; });
-        zone.addEventListener('drop', e => {
-          e.preventDefault();
-          zone.style.outline = 'none';
-          if (!dragId) return;
-          const deals = getDeals();
-          const deal = deals.find(d => d.id === dragId);
-          if (!deal) return;
-          const next = zone.dataset.drop;
-          deal.stage = next;
-          saveDeals(deals);
-          if (next === 'ganado') confetti(1500);
-          toast(next === 'ganado' ? '¡Oportunidad ganada!' : 'Etapa actualizada', 'success');
-          router(true);
-        });
-      });
+      bindCrmInteractions();
     }
 
     if (route === '#/chat') {
@@ -1304,14 +1248,26 @@
         btn.onclick = () => {
           activeChatId = btn.dataset.chat;
           isMobileChatDetail = true;
+          try {
+            history.pushState({ netsChatDetail: true, chatId: activeChatId }, '', '#/chat');
+          } catch (e) {}
           router(true);
         };
       });
-      const form = document.getElementById('chat-send-form');
+      const back = document.getElementById('btn-chat-back');
+      if (back) back.onclick = () => {
+        isMobileChatDetail = false;
+        if (history.state && history.state.netsChatDetail) {
+          history.back();
+        } else {
+          router(true);
+        }
+      };
+      const form = document.getElementById('nets-chat-form') || document.getElementById('chat-send-form');
       if (form) form.onsubmit = (e) => {
         e.preventDefault();
-        const input = document.getElementById('chat-input');
-        const text = (input.value || '').trim();
+        const input = document.getElementById('nets-chat-input') || document.getElementById('chat-input');
+        const text = (input && input.value || '').trim();
         if (!text) return;
         const chats = getChats();
         const chat = chats.find(c => c.id === activeChatId);
@@ -1322,21 +1278,151 @@
         input.value = '';
         router(true);
       };
+      const thread = document.getElementById('nets-chat-thread');
+      if (thread) thread.scrollTop = thread.scrollHeight;
     }
 
     if (route === '#/apps') {
-      document.querySelectorAll('[data-app-toggle]').forEach(cb => {
-        cb.onchange = () => {
+      document.querySelectorAll('[data-locked-app]').forEach(btn => {
+        btn.onclick = () => {
           const apps = getAppsState();
-          const app = apps.find(a => a.id === cb.dataset.appToggle);
-          if (!app) return;
-          app.enabled = cb.checked;
-          saveAppsState(apps);
-          toast(app.enabled ? app.title + ' activada' : app.title + ' pausada', 'info');
-          router(true);
+          const app = apps.find(a => a.id === btn.dataset.lockedApp);
+          const title = (app && app.title) || 'esta función';
+          const q = encodeURIComponent('Hola Nets Business Core, quiero activar ' + title);
+          const existing = document.getElementById('nets-locked-modal');
+          if (existing) existing.remove();
+          const modal = document.createElement('div');
+          modal.id = 'nets-locked-modal';
+          modal.className = 'nets-modal-backdrop';
+          modal.innerHTML = `
+            <div class="nets-locked-card" role="dialog" aria-modal="true" aria-labelledby="locked-title">
+              <div style="font-size:28px;margin-bottom:8px" aria-hidden="true">🔒</div>
+              <h3 id="locked-title" style="margin:0 0 8px;color:var(--navy)">${title}</h3>
+              <p class="muted" style="margin:0 0 16px;font-size:14px">Contacta a Nets Business Core para activar esta función</p>
+              <a class="nets-btn-wa" href="https://wa.me/573200008899?text=${q}" target="_blank" rel="noopener">Contactar por WhatsApp</a>
+              <button type="button" class="nets-btn" id="btn-close-locked" style="display:block;margin:14px auto 0;background:transparent;border:0;color:var(--muted);cursor:pointer">Cerrar</button>
+            </div>`;
+          document.body.appendChild(modal);
+          modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+          const close = document.getElementById('btn-close-locked');
+          if (close) close.onclick = () => modal.remove();
         };
       });
     }
+
+    if (route !== '#/chat') {
+      isMobileChatDetail = false;
+    }
+  }
+
+  function moveDealToStage(dealId, nextStage) {
+    const deals = getDeals();
+    const deal = deals.find(d => d.id === dealId);
+    if (!deal || deal.stage === nextStage) return false;
+    deal.stage = nextStage;
+    saveDeals(deals);
+    if (nextStage === 'ganado') confetti(1500);
+    toast(nextStage === 'ganado' ? '¡Oportunidad ganada!' : 'Etapa actualizada', 'success');
+    return true;
+  }
+
+  function bindCrmInteractions() {
+    let dragId = null;
+    document.querySelectorAll('.kanban-card').forEach(card => {
+      card.addEventListener('dragstart', (e) => {
+        if (e.target.closest('select')) { e.preventDefault(); return; }
+        dragId = card.dataset.id;
+        card.classList.add('dragging');
+        card.style.opacity = '.5';
+        try { e.dataTransfer.setData('text/plain', dragId); } catch (err) {}
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        card.style.opacity = '1';
+        dragId = null;
+      });
+
+      let longPressTimer = null;
+      let draggingTouch = false;
+      let startX = 0, startY = 0;
+      card.addEventListener('touchstart', (e) => {
+        if (e.target.closest('select,button,a,label')) return;
+        const t = e.touches[0];
+        startX = t.clientX; startY = t.clientY;
+        draggingTouch = false;
+        longPressTimer = setTimeout(() => {
+          draggingTouch = true;
+          dragId = card.dataset.id;
+          card.classList.add('dragging');
+          if (navigator.vibrate) try { navigator.vibrate(25); } catch (err) {}
+        }, 260);
+      }, { passive: true });
+      card.addEventListener('touchmove', (e) => {
+        const t = e.touches[0];
+        if (!draggingTouch) {
+          if (Math.abs(t.clientX - startX) > 12 || Math.abs(t.clientY - startY) > 12) {
+            clearTimeout(longPressTimer);
+          }
+          return;
+        }
+        e.preventDefault();
+        const boardEl = document.querySelector('.kanban-board-scroll') || document.querySelector('.kanban-board');
+        if (boardEl) {
+          const rect = boardEl.getBoundingClientRect();
+          if (t.clientX > rect.right - 48) boardEl.scrollLeft += 18;
+          if (t.clientX < rect.left + 48) boardEl.scrollLeft -= 18;
+        }
+        document.querySelectorAll('[data-drop]').forEach(z => { z.style.outline = 'none'; });
+        const under = document.elementFromPoint(t.clientX, t.clientY);
+        const zone = under && under.closest('[data-drop]');
+        if (zone) {
+          zone.style.outline = '2px dashed #2DAAE1';
+          card._touchZone = zone;
+        } else {
+          card._touchZone = null;
+        }
+      }, { passive: false });
+      const endTouch = () => {
+        clearTimeout(longPressTimer);
+        if (draggingTouch && card._touchZone && dragId) {
+          const next = card._touchZone.dataset.drop;
+          if (moveDealToStage(dragId, next)) {
+            document.querySelectorAll('[data-drop]').forEach(z => { z.style.outline = 'none'; });
+            card.classList.remove('dragging');
+            draggingTouch = false;
+            dragId = null;
+            router(true);
+            return;
+          }
+        }
+        draggingTouch = false;
+        card.classList.remove('dragging');
+        document.querySelectorAll('[data-drop]').forEach(z => { z.style.outline = 'none'; });
+      };
+      card.addEventListener('touchend', endTouch);
+      card.addEventListener('touchcancel', endTouch);
+    });
+
+    document.querySelectorAll('[data-drop]').forEach(zone => {
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.outline = '2px dashed #2DAAE1'; });
+      zone.addEventListener('dragleave', () => { zone.style.outline = 'none'; });
+      zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.style.outline = 'none';
+        const id = dragId || (e.dataTransfer && e.dataTransfer.getData('text/plain'));
+        if (!id) return;
+        if (moveDealToStage(id, zone.dataset.drop)) router(true);
+      });
+    });
+
+    document.querySelectorAll('.kanban-move-menu').forEach(sel => {
+      sel.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+      sel.addEventListener('mousedown', e => e.stopPropagation());
+      sel.onchange = () => {
+        const id = sel.dataset.move;
+        if (moveDealToStage(id, sel.value)) router(true);
+      };
+    });
   }
 
   function router(skipSkeleton) {
@@ -1391,8 +1477,14 @@
       renderSingleTopBanner();
     });
 
-    window.addEventListener('hashchange', () => router());
-    window.addEventListener('popstate', () => router());
+    window.addEventListener('hashchange', () => {
+      if (!location.hash.startsWith('#/chat')) isMobileChatDetail = false;
+      router();
+    });
+    window.addEventListener('popstate', (e) => {
+      isMobileChatDetail = !!(e.state && e.state.netsChatDetail);
+      router(true);
+    });
     document.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
