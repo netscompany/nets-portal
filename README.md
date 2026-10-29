@@ -1,11 +1,5 @@
-# Nets Portal (vista previa)
+# Nets Business Core
 
-Portal cliente Nets Company — mobile-first + PWA.
+Vista previa del portal de operaciones de Nets Company.
 
-Preview: https://nets-portal-preview.netlify.app
-
-Login demo: cualquier correo/contraseña.
-
-Incluye: navegación inferior en móvil, CRM kanban, WhatsApp, administración de aplicaciones, manifest, service worker e iconos de marca.
-
-Próximo: Angular standalone conectado a erp.netscompany.co.
+https://nets-portal-preview.netlify.app
