@@ -2,82 +2,26 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0A192F">
-  <title>Sin conexión - Nets Company</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#061E33">
+  <meta name="description" content="Nets Business Core sin conexión. Reintente cuando vuelva la red.">
+  <title>Sin conexión - Nets Business Core</title>
+  <link rel="stylesheet" href="/styles.css">
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: #F4F7FB;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-    }
-    .card {
-      background: #FFFFFF;
-      border-radius: 16px;
-      padding: 2.5rem 2rem;
-      max-width: 400px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 10px 25px rgba(10, 25, 47, 0.08);
-    }
-    .logo {
-      max-width: 140px;
-      height: auto;
-      margin-bottom: 2rem;
-    }
-    h1 {
-      color: #0A192F;
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 0.75rem;
-    }
-    p {
-      color: #3D5166;
-      font-size: 1rem;
-      line-height: 1.5;
-      margin-bottom: 2rem;
-    }
-    .btn {
-      display: inline-block;
-      width: 100%;
-      padding: 0.875rem 1.5rem;
-      font-family: inherit;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #FFFFFF;
-      background: linear-gradient(135deg, #F5A623 0%, #D9472B 100%);
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      text-decoration: none;
-      transition: opacity 0.2s ease, transform 0.1s ease;
-    }
-    .btn:hover {
-      opacity: 0.95;
-    }
-    .btn:active {
-      transform: scale(0.98);
-    }
+    body{display:grid;place-items:center;min-height:100vh;margin:0;background:#F4F7FB;font-family:'DM Sans',system-ui,sans-serif;padding:24px;text-align:center}
+    .card{max-width:380px;background:#fff;border:1px solid #DDE3EE;border-radius:16px;padding:28px;box-shadow:0 8px 24px rgba(6,30,51,.08)}
+    img{height:36px;margin-bottom:16px}
+    h1{font-size:22px;color:#061E33;margin:0 0 8px}
+    p{font-size:14px;color:#3D5166;line-height:1.45}
+    button{margin-top:16px;background:linear-gradient(90deg,#F5A623,#D9472B);color:#fff;border:0;border-radius:10px;padding:12px 18px;font-weight:600;min-height:44px;cursor:pointer}
   </style>
 </head>
 <body>
-  <main class="card">
-    <img src="logo.svg" alt="Nets Company" class="logo">
-    <h1>Sin conexión</h1>
-    <p>Revisa tu internet e intenta de nuevo.</p>
-    <button type="button" class="btn" onclick="location.reload()">Reintentar</button>
-  </main>
+  <div class="card">
+    <img src="/logo.svg" alt="Nets Company" width="120" height="36">
+    <h1>Nets Business Core</h1>
+    <p>Sin conexión. Sus datos de demostración siguen disponibles al recuperar la red.</p>
+    <button type="button" onclick="location.reload()">Reintentar</button>
+  </div>
 </body>
 </html>

@@ -1,14 +1,14 @@
 {
-  "name": "Nets Company",
-  "short_name": "Nets",
-  "description": "Portal de operaciones Nets Company",
+  "name": "Nets Business Core",
+  "short_name": "Nets Core",
+  "description": "Nets Business Core: portal de operaciones de Nets Company para CRM, WhatsApp, inventario y facturación DIAN.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#061E33",
   "theme_color": "#061E33",
-  "lang": "es-CO",
+  "lang": "es",
   "categories": [
     "business",
     "productivity"

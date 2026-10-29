@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Nets Business Core preview
+Sitemap: https://nets-portal-preview.netlify.app/sitemap.xml

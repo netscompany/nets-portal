@@ -1,1 +1,12 @@
-/*    /index.html   200
+/robots.txt    /robots.txt    200
+/sitemap.xml   /sitemap.xml   200
+/manifest.webmanifest  /manifest.webmanifest  200
+/sw.js         /sw.js         200
+/styles.css    /styles.css    200
+/app.js        /app.js        200
+/offline.html  /offline.html  200
+/logo.svg      /logo.svg      200
+/logo-blanco.svg /logo-blanco.svg 200
+/favicon.png   /favicon.png   200
+/icons/*       /icons/:splat  200
+/*             /index.html    200
