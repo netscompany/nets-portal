@@ -2,7 +2,7 @@
   'use strict';
 
   /* ==========================================================================
-     NETS ENTERPRISE PWA - SINGLE APP ENGINE
+     NETS BUSINESS CORE PWA - SINGLE APP ENGINE
      Marca Marge + Nets | Vanilla JS IIFE Single Source of Truth
      ========================================================================== */
 
@@ -10,10 +10,10 @@
   const STORAGE_KEYS = {
     AUTH: 'nets_auth',
     THEME: 'nets_theme',
-    APPS: 'nets_apps_state',
+    APPS: 'nets_apps_state_v2',
     ONBOARDED: 'nets_onboarded',
-    DEALS: 'nets_crm_deals',
-    CHATS: 'nets_chat_history'
+    DEALS: 'nets_crm_deals_v2',
+    CHATS: 'nets_chat_history_v2'
   };
 
   // --- Estado Global ---
@@ -32,6 +32,23 @@
     streakDays: 14,
     level: 'Líder Platinum'
   };
+
+  // Producto y mock compartido (única fuente de verdad entre pantallas)
+  const PRODUCT = {
+    name: 'Nets Business Core',
+    shortName: 'Nets Core',
+    parent: 'Nets Company',
+    edition: 'Business Core'
+  };
+
+  const CRM_STAGES = [
+    { id: 'prospeccion', label: 'Pendiente' },
+    { id: 'calificacion', label: 'Calificación' },
+    { id: 'propuesta', label: 'Propuesta' },
+    { id: 'negociacion', label: 'Negociación' },
+    { id: 'ganado', label: 'Ganado' },
+    { id: 'perdido', label: 'Perdido' }
+  ];
 
   // Apps: Fuente única de la verdad
   const INITIAL_APPS = [
@@ -88,6 +105,7 @@
       id: 'deal-101',
       title: 'Grupo Nutresa - Enlace SD-WAN y Nube Híbrida',
       client: 'Grupo Nutresa S.A.',
+      clientShort: 'Grupo Nutresa',
       stage: 'prospeccion',
       amount: 48500000,
       initials: 'GN',
@@ -99,6 +117,7 @@
       id: 'deal-102',
       title: 'Cementos Argos - Renovación Datacenter Principal',
       client: 'Cementos Argos S.A.',
+      clientShort: 'Cementos Argos',
       stage: 'calificacion',
       amount: 135000000,
       initials: 'CA',
@@ -110,6 +129,7 @@
       id: 'deal-103',
       title: 'Celsia Energía - Bot WhatsApp Atención Cuadrillas',
       client: 'Celsia Colombia S.A. E.S.P.',
+      clientShort: 'Celsia',
       stage: 'propuesta',
       amount: 64200000,
       initials: 'CE',
@@ -121,6 +141,7 @@
       id: 'deal-104',
       title: 'Bancolombia - Seguridad Perimetral y SOC Nets Guard',
       client: 'Bancolombia S.A.',
+      clientShort: 'Bancolombia',
       stage: 'negociacion',
       amount: 218000000,
       initials: 'BC',
@@ -132,6 +153,7 @@
       id: 'deal-105',
       title: 'Carvajal Pulpa y Papel - Cableado Estructurado Planta Yumbo',
       client: 'Carvajal S.A.',
+      clientShort: 'Carvajal',
       stage: 'ganado',
       amount: 89000000,
       initials: 'CJ',
@@ -143,6 +165,7 @@
       id: 'deal-106',
       title: 'Rappi Colombia - Interconexión Dark Fiber Sede Chicó',
       client: 'Rappi S.A.S.',
+      clientShort: 'Rappi',
       stage: 'perdido',
       amount: 42000000,
       initials: 'RP',
@@ -154,6 +177,7 @@
       id: 'deal-107',
       title: 'Terpel - Monitoreo IoT Estaciones de Servicio',
       client: 'Organización Terpel S.A.',
+      clientShort: 'Terpel',
       stage: 'propuesta',
       amount: 112000000,
       initials: 'TP',
@@ -168,7 +192,7 @@
     {
       id: 'chat-1',
       name: 'Ing. Carlos Mario Restrepo',
-      company: 'Grupo Nutresa',
+      company: 'Grupo Nutresa S.A.',
       phone: '+57 314 829 1104',
       avatar: 'CR',
       online: true,
@@ -184,7 +208,7 @@
     {
       id: 'chat-2',
       name: 'Dra. Marcela Echeverri',
-      company: 'Cementos Argos',
+      company: 'Cementos Argos S.A.',
       phone: '+57 301 554 9081',
       avatar: 'ME',
       online: false,
@@ -221,10 +245,40 @@
   ];
 
   const INITIAL_INVOICES = [
-    { prefix: 'SETT', number: 8920, client: 'Bancolombia S.A.', nit: '890.903.938-8', amount: 259420000, date: '2025-05-12', status: 'Validada DIAN', cufe: 'f83a79d20c8b3e1' },
-    { prefix: 'SETT', number: 8921, client: 'Celsia Colombia S.A.', nit: '900.284.453-1', amount: 76398000, date: '2025-05-13', status: 'Validada DIAN', cufe: 'c491b827e69a03f' },
-    { prefix: 'SETT', number: 8922, client: 'Organización Terpel S.A.', nit: '860.004.522-3', amount: 133280000, date: '2025-05-14', status: 'Validada DIAN', cufe: '98d41cf5e02ab71' },
-    { prefix: 'SETT', number: 8923, client: 'Rappi S.A.S.', nit: '900.843.801-0', amount: 49980000, date: '2025-05-14', status: 'En Proceso', cufe: 'Pendiente' }
+    { prefix: 'SETT', number: 8920, client: 'Bancolombia S.A.', nit: '890.903.938-8', amount: 259420000, date: '2026-10-12', status: 'Validada DIAN', cufe: 'f83a79d20c8b3e1' },
+    { prefix: 'SETT', number: 8921, client: 'Celsia Colombia S.A. E.S.P.', nit: '900.284.453-1', amount: 76398000, date: '2026-10-13', status: 'Validada DIAN', cufe: 'c491b827e69a03f' },
+    { prefix: 'SETT', number: 8922, client: 'Organización Terpel S.A.', nit: '860.004.522-3', amount: 133280000, date: '2026-10-14', status: 'Validada DIAN', cufe: '98d41cf5e02ab71' },
+    { prefix: 'SETT', number: 8923, client: 'Rappi S.A.S.', nit: '900.843.801-0', amount: 49980000, date: '2026-10-14', status: 'En Proceso', cufe: 'Pendiente' }
+  ];
+
+  // KPIs derivados del mock compartido (home ≡ CRM ≡ facturas)
+  function computeMockKpis(deals) {
+    const weights = { prospeccion: 0.1, calificacion: 0.3, propuesta: 0.5, negociacion: 0.8, ganado: 1, perdido: 0 };
+    const weighted = deals.reduce((s, d) => s + d.amount * (weights[d.stage] ?? 0), 0);
+    const salesMonth = Math.round(weighted);
+    const activeOpps = deals.filter(d => d.stage !== 'perdido').length;
+    const newOpps = deals.length;
+    return {
+      goalLabel: 'Meta Octubre 2026',
+      goalTarget: 450000000,
+      goalCurrent: salesMonth,
+      salesMonth,
+      salesDelta: '+18.2%',
+      goalFoot: 'Rendimiento +12.4% superior a septiembre',
+      newOpps,
+      activeOpps,
+      botChats: 1836,
+      botSla: '99.2% SLA',
+      quotes: 34,
+      quotesNote: '34 radicadas'
+    };
+  }
+
+  const MOCK_ACTIVITY = [
+    { titleHtml: '<strong>Bancolombia S.A.</strong> avanzó a Negociación final.', time: 'Hace 14 minutos · Auditoría Nets CRM' },
+    { titleHtml: '<strong>Celsia Colombia S.A. E.S.P.</strong> recibió propuesta de bot WhatsApp.', time: 'Hace 1 hora · WhatsApp' },
+    { titleHtml: 'Factura SETT-8921 validada ante la DIAN.', time: 'Hoy 09:12 · Facturación' },
+    { titleHtml: 'Stock crítico en UPS 3KVA — bodega Montevideo.', time: 'Ayer · Inventario' }
   ];
 
   // --- Recuperación de Estado ---
@@ -293,6 +347,13 @@
     }).format(value);
   }
 
+  function formatDate(iso) {
+    if (!iso || iso === 'Pendiente') return iso || '—';
+    const d = new Date(iso + 'T12:00:00');
+    if (Number.isNaN(d.getTime())) return iso;
+    return new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }).format(d);
+  }
+
   function getGreeting(name) {
     const hour = new Date().getHours();
     let salutation = 'Buenas noches';
@@ -302,7 +363,7 @@
   }
 
   // Generador de Iconos SVG Familia Coherente (Stroke #2DAAE1 o currentColor)
-  function icon(name, color = '#2DAAE1', size = 20) {
+  function icon(name, color = 'var(--blue)', size = 18) {
     const paths = {
       crm: '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
       chat: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
@@ -361,12 +422,19 @@
   // Count Up fluido para KPIs
   function countUp(element, endVal, duration = 1200, isCurrency = false) {
     if (!element) return;
+    const finalText = isCurrency ? formatCOP(endVal) : endVal.toLocaleString('es-CO');
+    const normalized = (s) => (s || '').replace(/\s/g, '');
+    // Si el HTML ya pintó el valor final (mock compartido), no reinicia en 0
+    if (normalized(element.textContent) === normalized(finalText)) {
+      element.textContent = finalText;
+      return;
+    }
     const startVal = 0;
     const startTime = performance.now();
     const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (isReduced) {
-      element.textContent = isCurrency ? formatCOP(endVal) : endVal.toLocaleString('es-CO');
+      element.textContent = finalText;
       return;
     }
 
@@ -505,7 +573,7 @@
         <div class="nets-cmd-backdrop" data-action="close-cmd"></div>
         <div class="nets-cmd-box fade-up">
           <div class="nets-cmd-search-wrap">
-            ${icon('search', '#2DAAE1', 20)}
+            ${icon('search', 'var(--blue)', 18)}
             <input type="text" id="nets-cmd-input" class="nets-cmd-input" placeholder="Buscar en Nets Business Core..." autofocus autocomplete="off" />
             <kbd class="nets-cmd-esc">ESC</kbd>
           </div>
@@ -598,7 +666,7 @@
     overlay.innerHTML = `
       <div class="nets-modal-card">
         <div class="nets-modal-header">
-          <div class="nets-badge-pill">${icon('award', '#2DAAE1', 14)} Bienvenido a Nets Business Core</div>
+          <div class="nets-badge-pill">${icon('award', 'var(--blue)', 16)} Bienvenido a Nets Business Core</div>
           <button class="nets-btn-icon-ghost" id="btn-close-onboard" aria-label="Cerrar bienvenida">${icon('close', 'currentColor', 18)}</button>
         </div>
         <div class="nets-modal-body">
@@ -608,15 +676,15 @@
           </p>
           <div class="nets-features-checklist">
             <div class="nets-check-row">
-              <span class="nets-check-dot">${icon('check', '#2DAAE1', 14)}</span>
+              <span class="nets-check-dot">${icon('check', 'var(--blue)', 16)}</span>
               <span><strong>Pipeline B2B:</strong> Arrastre y suelte acuerdos comerciales entre 6 etapas auditadas.</span>
             </div>
             <div class="nets-check-row">
-              <span class="nets-check-dot">${icon('check', '#2DAAE1', 14)}</span>
+              <span class="nets-check-dot">${icon('check', 'var(--blue)', 16)}</span>
               <span><strong>WhatsApp Centralizado:</strong> Mensajería directa e inteligencia artificial de respuesta.</span>
             </div>
             <div class="nets-check-row">
-              <span class="nets-check-dot">${icon('check', '#2DAAE1', 14)}</span>
+              <span class="nets-check-dot">${icon('check', 'var(--blue)', 16)}</span>
               <span><strong>Atajo Global:</strong> Presione <kbd>Ctrl+K</kbd> o <kbd>Cmd+K</kbd> en cualquier vista para navegar al instante.</span>
             </div>
           </div>
@@ -675,7 +743,7 @@
         <span class="nets-banner-text">Vista previa · Datos de demostración</span>
         ${showInstall ? `
           <button id="nets-btn-pwa-install" class="nets-btn-banner-install" aria-label="Instalar Nets Business Core">
-            ${icon('download', '#FFFFFF', 14)}
+            ${icon('download', '#FFFFFF', 16)}
             <span>Instalar</span>
           </button>
         ` : ''}
@@ -742,7 +810,7 @@
         <aside class="nets-sidebar" aria-label="Navegación Principal">
           <div class="nets-sidebar-brand">
             <img src="logo-blanco.svg" alt="Nets Company" class="nets-sidebar-logo" onerror="this.outerHTML='<span class=\\'nets-logo-text\\'>NETS</span>'" />
-            <span class="nets-sidebar-edition">Business Core</span>
+            <span class="nets-sidebar-edition">${PRODUCT.edition}</span>
           </div>
 
           <nav class="nets-sidebar-nav">
@@ -777,7 +845,7 @@
               </div>
             </div>
             <button class="nets-btn-logout-sidebar" id="btn-logout" title="Cerrar sesión" aria-label="Cerrar sesión">
-              ${icon('logout', 'currentColor', 16)}
+              ${icon('logout', 'currentColor', 18)}
             </button>
           </div>
         </aside>
@@ -788,15 +856,15 @@
           <header class="nets-topbar">
             <div class="nets-topbar-left">
               <button class="nets-search-trigger" id="btn-search-trigger" aria-label="Buscar en Nets Business Core">
-                ${icon('search', '#2DAAE1', 16)}
-                <span class="nets-search-placeholder">Buscar en Nets Core...</span>
+                ${icon('search', 'var(--blue)', 18)}
+                <span class="nets-search-placeholder">Buscar en ${PRODUCT.shortName}...</span>
                 <kbd class="nets-search-kbd">⌘K</kbd>
               </button>
             </div>
 
             <div class="nets-topbar-right">
               <div class="nets-streak-pill" title="Racha operativa activa">
-                ${icon('award', '#2DAAE1', 16)}
+                ${icon('award', 'var(--blue)', 18)}
                 <span>14 días seguidos</span>
               </div>
 
@@ -828,7 +896,7 @@
         <nav class="nets-bottom-nav" aria-label="Navegación Móvil">
           ${bottomNavItems.map(item => `
             <a href="${item.route}" class="nets-bottom-nav-link ${activeRoute === item.route ? 'active' : ''}">
-              ${icon(item.iconName, activeRoute === item.route ? '#2DAAE1' : 'currentColor', 20)}
+              ${icon(item.iconName, activeRoute === item.route ? '#2DAAE1' : 'currentColor', 18)}
               <span class="nets-bottom-nav-label">${item.label}</span>
             </a>
           `).join('')}
@@ -885,9 +953,9 @@
     const auth = getStoredAuth() || DEFAULT_USER;
     const greeting = getGreeting(auth.shortName || 'Ger');
     const enabledApps = getAppsState().filter(a => a.enabled);
-
-    const goalTarget = 450000000;
-    const goalCurrent = 384500000;
+    const kpis = computeMockKpis(getDeals());
+    const goalTarget = kpis.goalTarget;
+    const goalCurrent = kpis.goalCurrent;
     const goalPercent = Math.round((goalCurrent / goalTarget) * 100);
 
     const contentHtml = `
@@ -896,8 +964,8 @@
         <section class="nets-welcome-card fade-up">
           <div class="nets-welcome-info">
             <div class="nets-badge-streak">
-              ${icon('award', '#2DAAE1', 14)}
-              <span>Racha Comercial: 14 días cumpliendo metas</span>
+              ${icon('award', 'var(--blue)', 16)}
+              <span>Racha Comercial: ${auth.streakDays || 14} días cumpliendo metas</span>
             </div>
             <h2 class="nets-welcome-greeting">${greeting}</h2>
             <p class="nets-welcome-text">
@@ -908,14 +976,14 @@
           <!-- Meta Mensual Progress -->
           <div class="nets-goal-box">
             <div class="nets-goal-header">
-              <span class="nets-goal-label">Meta Mayo 2025</span>
+              <span class="nets-goal-label">${kpis.goalLabel}</span>
               <span class="nets-goal-values"><strong>${formatCOP(goalCurrent)}</strong> / ${formatCOP(goalTarget)}</span>
             </div>
             <div class="nets-progress-track">
               <div class="nets-progress-fill" style="width: ${goalPercent}%"></div>
             </div>
             <div class="nets-goal-foot">
-              <span>Rendimiento +12.4% superior a abril</span>
+              <span>${kpis.goalFoot}</span>
               <span>${goalPercent}%</span>
             </div>
           </div>
@@ -926,11 +994,11 @@
           <div class="nets-kpi-card fade-up" style="animation-delay: 60ms">
             <div class="nets-kpi-top">
               <span class="nets-kpi-label">Ventas del Mes</span>
-              <span class="nets-kpi-icon">${icon('receipt', '#2DAAE1', 18)}</span>
+              <span class="nets-kpi-icon">${icon('receipt', 'var(--blue)', 18)}</span>
             </div>
-            <div class="nets-kpi-val" id="kpi-sales">0</div>
+            <div class="nets-kpi-val" id="kpi-sales">${formatCOP(kpis.salesMonth)}</div>
             <div class="nets-kpi-bottom">
-              <span class="nets-pill-up">+18.2%</span>
+              <span class="nets-pill-up">${kpis.salesDelta}</span>
               <canvas class="nets-sparkline" id="spark-sales"></canvas>
             </div>
           </div>
@@ -938,11 +1006,11 @@
           <div class="nets-kpi-card fade-up" style="animation-delay: 120ms">
             <div class="nets-kpi-top">
               <span class="nets-kpi-label">Oportunidades Nuevas</span>
-              <span class="nets-kpi-icon">${icon('crm', '#2DAAE1', 18)}</span>
+              <span class="nets-kpi-icon">${icon('crm', 'var(--blue)', 18)}</span>
             </div>
-            <div class="nets-kpi-val" id="kpi-deals">0</div>
+            <div class="nets-kpi-val" id="kpi-deals">${kpis.newOpps.toLocaleString('es-CO')}</div>
             <div class="nets-kpi-bottom">
-              <span class="nets-pill-up">+7 activas</span>
+              <span class="nets-pill-up">+${kpis.activeOpps} activas</span>
               <canvas class="nets-sparkline" id="spark-deals"></canvas>
             </div>
           </div>
@@ -950,11 +1018,11 @@
           <div class="nets-kpi-card fade-up" style="animation-delay: 180ms">
             <div class="nets-kpi-top">
               <span class="nets-kpi-label">Conversaciones Bot</span>
-              <span class="nets-kpi-icon">${icon('chat', '#2DAAE1', 18)}</span>
+              <span class="nets-kpi-icon">${icon('chat', 'var(--blue)', 18)}</span>
             </div>
-            <div class="nets-kpi-val" id="kpi-chats">0</div>
+            <div class="nets-kpi-val" id="kpi-chats">${kpis.botChats.toLocaleString('es-CO')}</div>
             <div class="nets-kpi-bottom">
-              <span class="nets-pill-up">99.2% SLA</span>
+              <span class="nets-pill-up">${kpis.botSla}</span>
               <canvas class="nets-sparkline" id="spark-chats"></canvas>
             </div>
           </div>
@@ -962,11 +1030,11 @@
           <div class="nets-kpi-card fade-up" style="animation-delay: 240ms">
             <div class="nets-kpi-top">
               <span class="nets-kpi-label">Cotizaciones Emitidas</span>
-              <span class="nets-kpi-icon">${icon('box', '#2DAAE1', 18)}</span>
+              <span class="nets-kpi-icon">${icon('box', 'var(--blue)', 18)}</span>
             </div>
-            <div class="nets-kpi-val" id="kpi-quotes">0</div>
+            <div class="nets-kpi-val" id="kpi-quotes">${kpis.quotes.toLocaleString('es-CO')}</div>
             <div class="nets-kpi-bottom">
-              <span class="nets-pill-up">34 radicadas</span>
+              <span class="nets-pill-up">${kpis.quotesNote}</span>
               <canvas class="nets-sparkline" id="spark-quotes"></canvas>
             </div>
           </div>
@@ -982,7 +1050,7 @@
             <div class="nets-apps-compact-grid">
               ${enabledApps.map(app => `
                 <a href="${app.route}" class="nets-app-compact-card">
-                  <div class="nets-app-compact-icon">${icon(app.icon, '#2DAAE1', 22)}</div>
+                  <div class="nets-app-compact-icon">${icon(app.icon, '#2DAAE1', 18)}</div>
                   <div class="nets-app-compact-texts">
                     <span class="nets-app-compact-name">${app.title}</span>
                     <span class="nets-app-compact-desc">${app.desc}</span>
@@ -998,35 +1066,14 @@
               <span class="nets-tag-live">Bogotá HQ</span>
             </div>
             <div class="nets-activity-feed">
+              ${MOCK_ACTIVITY.map(a => `
               <div class="nets-activity-item">
                 <span class="nets-act-dot"></span>
                 <div class="nets-act-body">
-                  <p class="nets-act-title"><strong>Bancolombia S.A.</strong> avanzó a Negociación final.</p>
-                  <span class="nets-act-time">Hace 14 minutos · Auditoría Nets CRM</span>
+                  <p class="nets-act-title">${a.titleHtml}</p>
+                  <span class="nets-act-time">${a.time}</span>
                 </div>
-              </div>
-
-              <div class="nets-activity-item">
-                <span class="nets-act-dot"></span>
-                <div class="nets-act-body">
-                  <p class="nets-act-title"><strong>Celsia</strong> recibió propuesta de bot WhatsApp.</p>
-                  <span class="nets-act-time">Hace 1 hora · WhatsApp</span>
-                </div>
-              </div>
-              <div class="nets-activity-item">
-                <span class="nets-act-dot"></span>
-                <div class="nets-act-body">
-                  <p class="nets-act-title">Factura SETT-8921 validada ante la DIAN.</p>
-                  <span class="nets-act-time">Hoy 09:12 · Facturación</span>
-                </div>
-              </div>
-              <div class="nets-activity-item">
-                <span class="nets-act-dot"></span>
-                <div class="nets-act-body">
-                  <p class="nets-act-title">Stock crítico en UPS 3KVA — bodega Montevideo.</p>
-                  <span class="nets-act-time">Ayer · Inventario</span>
-                </div>
-              </div>
+              </div>`).join('')}
             </div>
           </div>
         </section>
@@ -1035,14 +1082,7 @@
     return wrapLayout('Inicio', 'Panel operativo Nets Colombia', contentHtml, '#/home');
   }
 
-  const CRM_STAGES = [
-    { id: 'prospeccion', label: 'Pendiente' },
-    { id: 'calificacion', label: 'Calificación' },
-    { id: 'propuesta', label: 'Propuesta' },
-    { id: 'negociacion', label: 'Negociación' },
-    { id: 'ganado', label: 'Ganado' },
-    { id: 'perdido', label: 'Perdido' }
-  ];
+
 
   function renderCrm() {
     const deals = getDeals();
@@ -1060,7 +1100,7 @@
             ${cards.map(d => `
               <article class="kanban-card" draggable="true" data-id="${d.id}" role="button" tabindex="0" aria-grabbed="false" aria-label="Oportunidad ${d.client}, ${formatCOP(d.amount)}. Arrastre para cambiar de etapa.">
                 <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
-                  <div class="nets-user-avatar" style="width:32px;height:32px;font-size:12px;background:#E8F6FC;color:#2DAAE1">${d.initials}</div>
+                  <div class="nets-user-avatar" style="width:32px;height:32px;font-size:12px;background:var(--blue-soft);color:var(--blue)">${d.initials}</div>
                   <div>
                     <div style="font-weight:600;font-size:14px">${d.client}</div>
                     <div class="muted" style="font-size:14px">${d.tag} · ${d.days}d</div>
@@ -1085,7 +1125,7 @@
     const active = chats.find(c => c.id === activeChatId) || chats[0];
     const list = chats.map(c => `
       <button class="nets-chat-list-item ${c.id === active.id ? 'active' : ''}" data-chat="${c.id}" type="button">
-        <div class="nets-user-avatar" style="background:#E8F6FC;color:#2DAAE1">${c.avatar}</div>
+        <div class="nets-user-avatar" style="background:var(--blue-soft);color:var(--blue)">${c.avatar}</div>
         <div style="flex:1;min-width:0;text-align:left">
           <div style="display:flex;justify-content:space-between;gap:8px">
             <strong style="font-size:14px">${c.name}</strong>
@@ -1093,7 +1133,7 @@
           </div>
           <div class="muted chat-preview" style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.company}</div>
         </div>
-        ${c.unread ? `<span class="kanban-badge" style="background:#2DAAE1;color:#fff">${c.unread}</span>` : ''}
+        ${c.unread ? `<span class="kanban-badge" style="background:var(--blue);color:#fff">${c.unread}</span>` : ''}
       </button>`).join('');
     const msgs = (active.messages || []).map(m => `
       <div class="chat-bubble ${m.from === 'me' ? 'me' : 'them'}" style="align-self:${m.from==='me'?'flex-end':'flex-start'};background:${m.from==='me'?'#2DAAE1':'#fff'};color:${m.from==='me'?'#fff':'var(--text)'};padding:10px 14px;border-radius:18px;max-width:80%;font-size:14px;border:1px solid var(--border)">
@@ -1106,7 +1146,7 @@
         <div class="nets-card" style="display:${(!isMobileChatDetail && window.innerWidth<800)?'none':'flex'};flex-direction:column;padding:0;overflow:hidden">
           <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
             <button type="button" id="chat-back" class="nets-btn-icon" aria-label="Volver a la lista de chats" style="display:none">${icon('home','currentColor',18)}</button>
-            <div class="nets-user-avatar" style="background:#E8F6FC;color:#2DAAE1">${active.avatar}</div>
+            <div class="nets-user-avatar" style="background:var(--blue-soft);color:var(--blue)">${active.avatar}</div>
             <div>
               <strong>${active.name}</strong>
               <div class="muted" style="font-size:14px">${active.company} · ${active.phone}</div>
@@ -1128,7 +1168,7 @@
     const rows = apps.map(a => `
       <div class="nets-card" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
         <div style="display:flex;gap:12px;align-items:center">
-          <div>${icon(a.icon,'#2DAAE1',22)}</div>
+          <div>${icon(a.icon,'#2DAAE1', 18)}</div>
           <div>
             <strong>${a.title}</strong>
             <p class="muted app-card-desc" style="margin:4px 0 0;font-size:14px">${a.desc}</p>
@@ -1171,7 +1211,7 @@
         <td>${f.client}</td>
         <td class="muted" style="font-size:14px">${f.nit}</td>
         <td>${formatCOP(f.amount)}</td>
-        <td>${f.date}</td>
+        <td>${formatDate(f.date)}</td>
         <td><span class="kanban-badge">${f.status}</span></td>
       </tr>`).join('');
     const content = `
@@ -1217,10 +1257,10 @@
     }
 
     if (route === '#/home') {
-      countUp(document.getElementById('kpi-sales'), 384500000, 1200, true);
-      countUp(document.getElementById('kpi-deals'), 27, 1000, false);
-      countUp(document.getElementById('kpi-chats'), 1842, 1100, false);
-      countUp(document.getElementById('kpi-quotes'), 34, 900, false);
+      countUp(document.getElementById('kpi-sales'), computeMockKpis(getDeals()).salesMonth, 900, true);
+      countUp(document.getElementById('kpi-deals'), computeMockKpis(getDeals()).newOpps, 700, false);
+      countUp(document.getElementById('kpi-chats'), computeMockKpis(getDeals()).botChats, 800, false);
+      countUp(document.getElementById('kpi-quotes'), computeMockKpis(getDeals()).quotes, 700, false);
       const sparks = [
         ['spark-sales', [12,18,15,22,28,26,31]],
         ['spark-deals', [4,6,5,8,7,9,11]],

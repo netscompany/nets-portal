@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nets-portal-v3';
+const CACHE_NAME = 'nets-portal-v4';
 
 const PRECACHE_ASSETS = [
   '/',

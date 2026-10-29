@@ -1,28 +1,56 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
 :root {
+  /* Marca Nets Business Core — tokens únicos */
   --navy: #061E33;
   --navy2: #0A2540;
   --blue: #2DAAE1;
+  --link: #0A5F82;
   --orange: #F58233;
   --grad: linear-gradient(90deg, #F5A623, #D9472B);
   --bg: #F4F7FB;
+  --surface: #FFFFFF;
+  --surface-2: #F8FBFE;
   --text: #0F1C2A;
   --muted: #3D5166;
   --border: #DDE3EE;
+  --blue-soft: #E8F6FC;
+  --danger: #EF4444;
+  --success: #16A34A;
+  /* Radios */
+  --r-sm: 6px;
   --r: 10px;
+  --r-md: 12px;
   --r2: 16px;
+  --r-lg: 20px;
+  --r-pill: 99px;
+  /* Espaciado */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  /* Tipo */
+  --font: 'DM Sans', system-ui, sans-serif;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 14px;
+  --fs-base: 15px;
+  --fs-lg: 18px;
+  --fs-title: 26px;
   --shadow: 0 1px 2px rgba(6,30,51,.04), 0 8px 24px rgba(6,30,51,.06);
   --shadow-hover: 0 8px 28px rgba(6,30,51,.12);
+  --shadow-modal: 0 24px 64px rgba(6,30,51,.35);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; min-height: 100%; }
 body {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--font);
   background: var(--bg);
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -63,15 +91,15 @@ body::before {
   padding: 8px 16px; max-width: none; width: 100%;
 }
 .nets-banner-tag {
-  background: rgba(45,170,225,.2); color: #2DAAE1;
+  background: rgba(45,170,225,.2); color: var(--blue);
   font-size: 10px; font-weight: 700; letter-spacing: .06em;
-  padding: 3px 8px; border-radius: 99px;
+  padding: 3px 8px; border-radius: var(--r-pill);
 }
 .nets-banner-text { color: #cfe8f5; font-size: 12px; }
 .nets-btn-banner-install {
   margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
   background: rgba(45,170,225,.18); color: #fff; border: 1px solid rgba(45,170,225,.45);
-  border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+  border-radius: var(--r); padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
 }
 .nets-btn-banner-install:hover { background: rgba(45,170,225,.32); }
 
@@ -86,7 +114,7 @@ body::before {
 .nets-sidebar-logo { height: 28px; width: auto; }
 .nets-sidebar-edition {
   font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-  color: #2DAAE1; background: rgba(45,170,225,.15); padding: 3px 8px; border-radius: 6px;
+  color: var(--blue); background: rgba(45,170,225,.15); padding: 3px 8px; border-radius: var(--r-sm);
 }
 .nets-sidebar-section-title {
   font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
@@ -97,10 +125,10 @@ body::before {
   color: rgba(255,255,255,.78); font-size: 14px; font-weight: 500; transition: .15s;
 }
 .nets-nav-link:hover { background: rgba(255,255,255,.06); color: #fff; }
-.nets-nav-link.active { background: rgba(45,170,225,.16); color: #2DAAE1; }
+.nets-nav-link.active { background: rgba(45,170,225,.16); color: var(--blue); }
 .nets-nav-pill {
   margin-left: auto; font-size: 11px !important; color: rgba(255,255,255,.55) !important;
-  background: rgba(255,255,255,.08); padding: 2px 7px; border-radius: 99px;
+  background: rgba(255,255,255,.08); padding: 2px 7px; border-radius: var(--r-pill);
 }
 .nets-sidebar-footer {
   margin-top: auto; display: flex; align-items: center; gap: 10px;
@@ -109,13 +137,13 @@ body::before {
 .nets-user-brief { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
 .nets-user-avatar {
   width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
-  background: #2DAAE1; color: #fff; font-size: 12px; font-weight: 700; flex-shrink: 0;
+  background: var(--blue); color: #fff; font-size: 12px; font-weight: 700; flex-shrink: 0;
 }
 .nets-user-meta { display: flex; flex-direction: column; min-width: 0; }
 .nets-user-name { font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nets-user-role { font-size: 12px !important; color: rgba(255,255,255,.55) !important; }
 .nets-btn-logout-sidebar {
-  background: transparent; border: 0; color: rgba(255,255,255,.7); cursor: pointer; padding: 8px; border-radius: 8px;
+  background: transparent; border: 0; color: rgba(255,255,255,.7); cursor: pointer; padding: 8px; border-radius: var(--r);
 }
 .nets-btn-logout-sidebar:hover { background: rgba(255,255,255,.08); color: #fff; }
 
@@ -144,21 +172,21 @@ body::before {
 .nets-topbar-left, .nets-topbar-right { display: flex; align-items: center; gap: 10px; }
 .nets-search-trigger {
   display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--border);
-  border-radius: 10px; padding: 8px 12px; cursor: pointer; min-width: 180px; color: var(--muted);
+  border-radius: var(--r); padding: 8px 12px; cursor: pointer; min-width: 180px; color: var(--muted);
   box-shadow: var(--shadow);
 }
 .nets-search-placeholder { font-size: 14px; }
 .nets-search-kbd {
   margin-left: auto; font-size: 11px; background: var(--bg); border: 1px solid var(--border);
-  border-radius: 6px; padding: 2px 6px; color: var(--muted);
+  border-radius: var(--r-sm); padding: 2px 6px; color: var(--muted);
 }
 .nets-streak-pill {
   display: none; align-items: center; gap: 6px; background: #fff; border: 1px solid var(--border);
-  border-radius: 99px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--navy);
+  border-radius: var(--r-pill); padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--navy);
 }
 @media (min-width: 900px) { .nets-streak-pill { display: inline-flex; } }
 .nets-btn-icon, .nets-btn-icon-ghost {
-  background: #fff; border: 1px solid var(--border); border-radius: 10px; width:  44px; min-width: 44px; height:  44px; min-height: 44px;
+  background: #fff; border: 1px solid var(--border); border-radius: var(--r); width:  44px; min-width: 44px; height:  44px; min-height: 44px;
   display: grid; place-items: center; cursor: pointer; color: var(--muted);
 }
 .nets-btn-icon-ghost { background: transparent; border-color: transparent; }
@@ -168,7 +196,7 @@ body::before {
 }
 
 .nets-page-header { padding: 8px 0 16px; }
-.nets-page-title { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.02em; color: var(--navy); }
+.nets-page-title { margin: 0; font-size: var(--fs-title); font-weight: 700; letter-spacing: -.02em; color: var(--navy); }
 .nets-page-subtitle { margin: 6px 0 0; }
 
 /* Bottom nav — activo #2DAAE1 (Marge) */
@@ -181,12 +209,12 @@ body::before {
 }
 .nets-bottom-nav-link {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-  color: var(--muted); padding: 6px 2px; border-radius: 10px; font-weight: 600;
+  color: var(--muted); padding: 6px 2px; border-radius: var(--r); font-weight: 600;
 }
 .nets-bottom-nav-link.active,
 .nets-bottom-nav-link.active svg {
-  color: #2DAAE1 !important;
-  stroke: #2DAAE1 !important;
+  color: var(--blue) !important;
+  stroke: var(--blue) !important;
 }
 .nets-bottom-nav-label { font-size: 11px !important; color: inherit !important; }
 
@@ -204,16 +232,16 @@ body::before {
   .nets-welcome-card { grid-template-columns: 1.4fr 1fr; align-items: center; }
 }
 .nets-badge-streak, .nets-badge-pill {
-  display: inline-flex; align-items: center; gap: 6px; background: #E8F6FC; color: #0A5F82;
-  border-radius: 99px; padding: 4px 10px; font-size: 12px; font-weight: 600; margin-bottom: 8px;
+  display: inline-flex; align-items: center; gap: 6px; background: var(--blue-soft); color: var(--link);
+  border-radius: var(--r-pill); padding: 4px 10px; font-size: 12px; font-weight: 600; margin-bottom: 8px;
 }
 .nets-welcome-greeting { margin: 0; font-size: 28px; font-weight: 700; color: var(--navy); letter-spacing: -.02em; }
 .nets-welcome-text { margin: 8px 0 0; }
-.nets-goal-box { background: #F8FBFE; border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.nets-goal-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px; }
 .nets-goal-header, .nets-goal-foot { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
 .nets-goal-values { font-size: 13px; color: var(--muted); }
-.nets-progress-track { height: 8px; background: #E4ECF5; border-radius: 99px; margin: 10px 0; overflow: hidden; }
-.nets-progress-fill { height: 100%; background: var(--grad); border-radius: 99px; }
+.nets-progress-track { height: 8px; background: #E4ECF5; border-radius: var(--r-pill); margin: 10px 0; overflow: hidden; }
+.nets-progress-fill { height: 100%; background: var(--grad); border-radius: var(--r-pill); }
 
 .nets-kpis-grid {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;
@@ -227,7 +255,7 @@ body::before {
 .nets-kpi-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
 .nets-pill-up {
   font-size: 12px; font-weight: 600; color: #0F7A4A; background: #E7F8EF;
-  padding: 3px 8px; border-radius: 99px;
+  padding: 3px 8px; border-radius: var(--r-pill);
 }
 .nets-sparkline { width: 72px; height: 28px; }
 
@@ -240,24 +268,24 @@ body::before {
 .nets-home-column { background: rgba(255,255,255,.92); border: 1px solid var(--border); border-radius: var(--r2); padding: 16px; box-shadow: var(--shadow); }
 .nets-card-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .nets-card-heading { margin: 0; font-size: 16px; font-weight: 700; color: var(--navy); }
-.nets-link-action { color: #2DAAE1; font-size: 14px; font-weight: 600; }
+.nets-link-action { color: var(--link); font-size: 14px; font-weight: 600; }
 .nets-tag-live {
   font-size: 11px; font-weight: 700; color: #0F7A4A; background: #E7F8EF;
-  padding: 3px 8px; border-radius: 99px;
+  padding: 3px 8px; border-radius: var(--r-pill);
 }
 .nets-apps-compact-grid { display: flex; flex-direction: column; gap: 8px; }
 .nets-app-compact-card {
   display: flex; gap: 12px; align-items: center; padding: 12px; text-decoration: none; color: inherit;
 }
 .nets-app-compact-icon {
-  width: 42px; height: 42px; border-radius: 12px; background: #E8F6FC;
+  width: 42px; height: 42px; border-radius: var(--r-md); background: var(--blue-soft);
   display: grid; place-items: center; flex-shrink: 0;
 }
 .nets-app-compact-name { display: block; font-weight: 600; font-size: 14px; color: var(--navy); }
 .nets-app-compact-desc { display: block; margin-top: 2px; }
 .nets-activity-feed { display: flex; flex-direction: column; gap: 12px; }
 .nets-activity-item { display: flex; gap: 10px; }
-.nets-act-dot { width: 8px; height: 8px; border-radius: 50%; background: #2DAAE1; margin-top: 7px; flex-shrink: 0; }
+.nets-act-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); margin-top: 7px; flex-shrink: 0; }
 .nets-act-title { margin: 0; color: var(--text); }
 .nets-act-time { display: block; margin-top: 2px; }
 
@@ -289,7 +317,7 @@ body::before {
 }
 .kanban-badge {
   font-size: 11px; font-weight: 700; background: #EEF3F9; color: var(--muted);
-  padding: 2px 7px; border-radius: 99px;
+  padding: 2px 7px; border-radius: var(--r-pill);
 }
 .kanban-cards-stack { display: flex; flex-direction: column; gap: 8px; min-height: 80px; }
 .kanban-card { padding: 12px; cursor: grab; background: #fff; }
@@ -301,7 +329,7 @@ body::before {
 }
 .nets-auth-card {
   width: min(420px, 100%); background: rgba(255,255,255,.95); border: 1px solid var(--border);
-  border-radius: 20px; padding: 28px; box-shadow: var(--shadow-hover);
+  border-radius: var(--r-lg); padding: 28px; box-shadow: var(--shadow-hover);
 }
 .nets-auth-logo { height: 36px; margin-bottom: 16px; }
 .nets-auth-title { margin: 0; font-size: 22px; color: var(--navy); }
@@ -309,14 +337,14 @@ body::before {
 .nets-form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .nets-form-group label { font-size: 13px; font-weight: 600; color: var(--navy); }
 .nets-input {
-  border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; font-size: 14px;
+  border: 1px solid var(--border); border-radius: var(--r); padding: 11px 12px; font-size: 14px;
   background: #fff; color: var(--text);
 }
-.nets-input:focus { outline: 2px solid rgba(45,170,225,.35); border-color: #2DAAE1; }
+.nets-input:focus { outline: 2px solid rgba(45,170,225,.35); border-color: var(--blue); }
 .nets-auth-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 14px; }
 .nets-checkbox-label { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
 .nets-link {
-  color: #0A5F82;
+  color: var(--link);
   text-decoration: underline;
   text-underline-offset: 2px;
   font-weight: 600;
@@ -331,7 +359,7 @@ body::before {
   color: #061E33;
 }
 .nets-btn, .btn-accent {
-  border: 0; border-radius: 10px; padding: 11px 16px; font-weight: 600; cursor: pointer;
+  border: 0; border-radius: var(--r); padding: 11px 16px; font-weight: 600; cursor: pointer;
 }
 .nets-btn-primary, .btn-accent { background: var(--grad); color: #fff; }
 .nets-btn-block { width: 100%; }
@@ -340,9 +368,9 @@ body::before {
 /* Chat */
 .nets-chat-list-item {
   display: flex; gap: 10px; align-items: center; width: 100%;
-  background: transparent; border: 0; border-radius: 12px; padding: 10px; cursor: pointer;
+  background: transparent; border: 0; border-radius: var(--r-md); padding: 10px; cursor: pointer;
 }
-.nets-chat-list-item.active, .nets-chat-list-item:hover { background: #E8F6FC; }
+.nets-chat-list-item.active, .nets-chat-list-item:hover { background: var(--blue-soft); }
 
 /* CmdK / Modal / Toast / Skeleton */
 .nets-cmd-backdrop, .nets-modal-backdrop, .cmdk-overlay {
@@ -350,7 +378,7 @@ body::before {
   display: flex; align-items: flex-start; justify-content: center; padding-top: 12vh;
 }
 .nets-cmd-box, .nets-modal-card, .cmdk-panel {
-  width: min(560px, 92vw); background: #fff; border-radius: 16px; overflow: hidden;
+  width: min(560px, 92vw); background: #fff; border-radius: var(--r2); overflow: hidden;
   box-shadow: 0 24px 64px rgba(6,30,51,.35);
 }
 .nets-cmd-search-wrap { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
@@ -358,13 +386,13 @@ body::before {
 .nets-cmd-results { max-height: 360px; overflow: auto; padding: 8px; }
 .nets-cmd-item {
   display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px;
-  border: 0; background: transparent; border-radius: 10px; cursor: pointer; text-align: left;
+  border: 0; background: transparent; border-radius: var(--r); cursor: pointer; text-align: left;
 }
 .nets-cmd-item:hover { background: #F4F7FB; }
 .nets-cmd-item-title { font-weight: 600; font-size: 14px; }
 .nets-cmd-item-badge { margin-left: auto; font-size: 12px; color: var(--muted); }
 .nets-cmd-footer, .nets-cmd-empty { padding: 10px 16px; font-size: 13px; color: var(--muted); }
-.nets-cmd-esc { font-size: 11px; border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; }
+.nets-cmd-esc { font-size: 11px; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 2px 6px; }
 .nets-modal-header, .nets-modal-footer { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
 .nets-modal-body { padding: 0 20px 16px; }
 .nets-modal-title { margin: 0 0 8px; font-size: 20px; color: var(--navy); }
@@ -377,14 +405,14 @@ body::before {
 }
 .nets-toast, .toast {
   display: flex; align-items: center; gap: 10px; background: var(--navy); color: #fff;
-  padding: 12px 16px; border-radius: 12px; box-shadow: var(--shadow-hover); font-size: 14px; min-width: 240px;
+  padding: 12px 16px; border-radius: var(--r-md); box-shadow: var(--shadow-hover); font-size: 14px; min-width: 240px;
 }
 .nets-confetti-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 200; }
 
 .nets-skeleton-view { padding: 16px; }
 .nets-skel-line, .nets-skel-card, .nets-skel-board {
   background: linear-gradient(90deg, #e8eef6 25%, #f7fafc 50%, #e8eef6 75%);
-  background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 10px;
+  background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: var(--r);
 }
 .nets-skel-title { height: 28px; width: 42%; margin-bottom: 10px; }
 .nets-skel-subtitle { height: 16px; width: 28%; margin-bottom: 18px; }
@@ -398,7 +426,18 @@ body::before {
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 /* Dark */
-html.dark, html[data-theme="dark"] { color-scheme: dark; }
+html.dark, html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #071825;
+  --surface: #0d2133;
+  --surface-2: #0a1a2b;
+  --text: #E8EEF5;
+  --muted: #9BB0C4;
+  --border: #1e3a55;
+  --blue-soft: rgba(45,170,225,.12);
+  --shadow: 0 1px 2px rgba(0,0,0,.2), 0 8px 24px rgba(0,0,0,.28);
+  --shadow-hover: 0 8px 28px rgba(0,0,0,.4);
+}
 html.dark body, html[data-theme="dark"] body { background: #071825; color: #E8EEF5; }
 html.dark body::before, html[data-theme="dark"] body::before {
   background:
@@ -412,8 +451,7 @@ html.dark .nets-search-trigger, html.dark .nets-btn-icon, html.dark .nets-auth-c
 html.dark .nets-cmd-box, html.dark .nets-modal-card,
 html[data-theme="dark"] .nets-card, html[data-theme="dark"] .nets-kpi-card,
 html[data-theme="dark"] .nets-welcome-card, html[data-theme="dark"] .nets-home-column,
-html[data-theme="dark"] .kanban-column, html[data-theme="dark"] .kanban-card {
-  background: #0d2136; border-color: #1e3a55; color: #E8EEF5;
+html[data-theme="dark"] .kanban-column, html[data-theme="dark"] .kanban-card { background: var(--surface); border-color: #1e3a55; color: #E8EEF5;
 }
 html.dark .nets-page-title, html.dark .nets-welcome-greeting, html.dark .nets-kpi-val,
 html.dark .nets-card-heading, html.dark .nets-app-compact-name,
@@ -433,7 +471,7 @@ html.dark .nets-goal-box, html[data-theme="dark"] .nets-goal-box { background: #
 }
 
 table td, table th { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-.nets-toggle input { width: 18px; height: 18px; accent-color: #2DAAE1; }
+.nets-toggle input { width: 18px; height: 18px; accent-color: var(--blue); }
 
 .nets-toast-container {
   position: fixed; top: 16px; right: 16px; z-index: 120;
@@ -451,10 +489,10 @@ table td, table th { padding: 10px; border-bottom: 1px solid var(--border); vert
 }
 .nets-cmd-modal .nets-cmd-box {
   position: relative; margin: 12vh auto 0; width: min(560px, 92vw);
-  background: #fff; border-radius: 16px; overflow: hidden;
+  background: #fff; border-radius: var(--r2); overflow: hidden;
   box-shadow: 0 24px 64px rgba(6,30,51,.35); z-index: 1;
 }
-.nets-cmd-item.active { background: #E8F6FC; }
+.nets-cmd-item.active { background: var(--blue-soft); }
 .nets-cmd-item-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .nets-modal-backdrop {
   position: fixed; inset: 0; z-index: 95; background: rgba(6,30,51,.45); backdrop-filter: blur(6px);
@@ -470,5 +508,75 @@ table td, table th { padding: 10px; border-bottom: 1px solid var(--border); vert
   width: 44px; height: 44px; min-width: 44px; min-height: 44px;
 }
 .kanban-card:focus-visible {
-  outline: 2px solid #2DAAE1; outline-offset: 2px;
+  outline: 2px solid var(--blue); outline-offset: 2px;
 }
+
+/* Velora consistency — dark + hover unificado */
+.nets-btn-primary:hover, .btn-accent:hover { filter: brightness(1.05); }
+.nets-btn-primary:active, .btn-accent:active { filter: brightness(0.95); }
+.nets-chat-list-item:hover { background: var(--blue-soft); }
+.nets-chat-list-item.active { background: var(--blue-soft); }
+.nets-app-compact-card:hover { box-shadow: var(--shadow-hover); border-color: var(--blue); }
+.nets-kpi-card:hover, .kanban-card:hover { box-shadow: var(--shadow-hover); }
+.nets-cmd-box { background: var(--surface); box-shadow: var(--shadow-modal); }
+
+html.dark .nets-auth-card,
+html[data-theme="dark"] .nets-auth-card,
+html.dark .nets-modal-card,
+html[data-theme="dark"] .nets-modal-card,
+html.dark .nets-cmd-box,
+html[data-theme="dark"] .nets-cmd-box,
+html.dark .nets-toast,
+html[data-theme="dark"] .nets-toast,
+html.dark .kanban-card,
+html[data-theme="dark"] .kanban-card,
+html.dark .nets-app-compact-card,
+html[data-theme="dark"] .nets-app-compact-card,
+html.dark .nets-card,
+html[data-theme="dark"] .nets-card,
+html.dark .nets-kpi-card,
+html[data-theme="dark"] .nets-kpi-card,
+html.dark .nets-welcome-card,
+html[data-theme="dark"] .nets-welcome-card,
+html.dark .nets-home-column,
+html[data-theme="dark"] .nets-home-column,
+html.dark .kanban-column,
+html[data-theme="dark"] .kanban-column {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+html.dark .nets-input,
+html[data-theme="dark"] .nets-input,
+html.dark .nets-search-trigger,
+html[data-theme="dark"] .nets-search-trigger {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+html.dark .nets-link-action,
+html[data-theme="dark"] .nets-link-action { color: var(--link); }
+html.dark .nets-pill-up,
+html[data-theme="dark"] .nets-pill-up,
+html.dark .nets-badge-streak,
+html[data-theme="dark"] .nets-badge-streak {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+html.dark table th,
+html[data-theme="dark"] table th { color: var(--muted); border-color: var(--border); }
+html.dark table td,
+html[data-theme="dark"] table td { border-color: var(--border); color: var(--text); }
+html.dark .nets-goal-box,
+html[data-theme="dark"] .nets-goal-box { background: var(--surface-2); border-color: var(--border); }
+html.dark .nets-chat-list-item.active,
+html[data-theme="dark"] .nets-chat-list-item.active { background: var(--blue-soft); }
+html.dark .nets-page-title,
+html.dark .nets-welcome-greeting,
+html.dark .nets-kpi-val,
+html.dark .nets-card-heading,
+html[data-theme="dark"] .nets-page-title,
+html[data-theme="dark"] .nets-welcome-greeting,
+html[data-theme="dark"] .nets-kpi-val,
+html[data-theme="dark"] .nets-card-heading { color: var(--text); }
