@@ -506,13 +506,13 @@
         <div class="nets-cmd-box fade-up">
           <div class="nets-cmd-search-wrap">
             ${icon('search', '#2DAAE1', 20)}
-            <input type="text" id="nets-cmd-input" class="nets-cmd-input" placeholder="Buscar módulo, cliente o comando rápido..." autofocus autocomplete="off" />
+            <input type="text" id="nets-cmd-input" class="nets-cmd-input" placeholder="Buscar en Nets Business Core..." autofocus autocomplete="off" />
             <kbd class="nets-cmd-esc">ESC</kbd>
           </div>
           <div class="nets-cmd-results" id="nets-cmd-results"></div>
           <div class="nets-cmd-footer">
             <span>Navegue con <kbd>↑</kbd> <kbd>↓</kbd> y ejecute con <kbd>Enter</kbd></span>
-            <span class="nets-cmd-tag">Nets OS v4.2</span>
+            <span class="nets-cmd-tag">Nets Business Core</span>
           </div>
         </div>
       `;
@@ -590,6 +590,7 @@
   function checkFirstVisitOnboarding() {
     const onboarded = localStorage.getItem(STORAGE_KEYS.ONBOARDED);
     if (onboarded) return;
+    if (document.getElementById('nets-onboarding-modal')) return;
 
     const overlay = document.createElement('div');
     overlay.className = 'nets-modal-backdrop fade-up';
@@ -597,13 +598,13 @@
     overlay.innerHTML = `
       <div class="nets-modal-card">
         <div class="nets-modal-header">
-          <div class="nets-badge-pill">${icon('award', '#2DAAE1', 14)} Bienvenido a Nets Portal</div>
-          <button class="nets-btn-icon-ghost" id="btn-close-onboard">${icon('close', 'currentColor', 18)}</button>
+          <div class="nets-badge-pill">${icon('award', '#2DAAE1', 14)} Bienvenido a Nets Business Core</div>
+          <button class="nets-btn-icon-ghost" id="btn-close-onboard" aria-label="Cerrar bienvenida">${icon('close', 'currentColor', 18)}</button>
         </div>
         <div class="nets-modal-body">
-          <h2 class="nets-modal-title">Ecosistema Empresarial Nets Colombia</h2>
+          <h2 class="nets-modal-title">Nets Business Core · Ecosistema Nets Colombia</h2>
           <p class="nets-modal-desc">
-            Plataforma corporativa diseñada para la alta dirección y gestión omnicanal. Administre oportunidades comerciales, conversaciones de WhatsApp API, control de inventario y facturación electrónica DIAN con total fluidez.
+            Nets Business Core, plataforma corporativa para la alta dirección y gestión omnicanal. Administre oportunidades comerciales, conversaciones de WhatsApp API, control de inventario y facturación electrónica DIAN con total fluidez.
           </p>
           <div class="nets-features-checklist">
             <div class="nets-check-row">
@@ -632,7 +633,7 @@
       localStorage.setItem(STORAGE_KEYS.ONBOARDED, 'true');
       overlay.classList.add('nets-fade-out');
       setTimeout(() => overlay.remove(), 260);
-      toast('Onboarding completado. Disfrute su experiencia Nets.', 'success');
+      toast('Onboarding completado. Bienvenido a Nets Business Core.', 'success');
     };
 
     overlay.querySelector('#btn-close-onboard').addEventListener('click', close);
@@ -673,7 +674,7 @@
         <span class="nets-banner-tag">MODO DEMO</span>
         <span class="nets-banner-text">Vista previa · Datos de demostración</span>
         ${showInstall ? `
-          <button id="nets-btn-pwa-install" class="nets-btn-banner-install">
+          <button id="nets-btn-pwa-install" class="nets-btn-banner-install" aria-label="Instalar Nets Business Core">
             ${icon('download', '#FFFFFF', 14)}
             <span>Instalar</span>
           </button>
@@ -689,7 +690,7 @@
           pwaInstallEvent.prompt();
           const { outcome } = await pwaInstallEvent.userChoice;
           if (outcome === 'accepted') {
-            toast('Instalando Nets Enterprise en su dispositivo...', 'success');
+            toast('Instalando Nets Business Core en su dispositivo...', 'success');
           }
           pwaInstallEvent = null;
           renderSingleTopBanner();
@@ -740,8 +741,8 @@
         <!-- Sidebar Desktop -->
         <aside class="nets-sidebar" aria-label="Navegación Principal">
           <div class="nets-sidebar-brand">
-            <img src="logo-blanco.svg" alt="Nets" class="nets-sidebar-logo" onerror="this.outerHTML='<span class=\\'nets-logo-text\\'>NETS</span>'" />
-            <span class="nets-sidebar-edition">Enterprise</span>
+            <img src="logo-blanco.svg" alt="Nets Company" class="nets-sidebar-logo" onerror="this.outerHTML='<span class=\\'nets-logo-text\\'>NETS</span>'" />
+            <span class="nets-sidebar-edition">Business Core</span>
           </div>
 
           <nav class="nets-sidebar-nav">
@@ -775,7 +776,7 @@
                 <span class="nets-user-role">${auth ? auth.role : 'Corporativo'}</span>
               </div>
             </div>
-            <button class="nets-btn-logout-sidebar" id="btn-logout" title="Cerrar sesión">
+            <button class="nets-btn-logout-sidebar" id="btn-logout" title="Cerrar sesión" aria-label="Cerrar sesión">
               ${icon('logout', 'currentColor', 16)}
             </button>
           </div>
@@ -786,9 +787,9 @@
           <!-- Topbar -->
           <header class="nets-topbar">
             <div class="nets-topbar-left">
-              <button class="nets-search-trigger" id="btn-search-trigger">
+              <button class="nets-search-trigger" id="btn-search-trigger" aria-label="Buscar en Nets Business Core">
                 ${icon('search', '#2DAAE1', 16)}
-                <span class="nets-search-placeholder">Buscar en Nets...</span>
+                <span class="nets-search-placeholder">Buscar en Nets Core...</span>
                 <kbd class="nets-search-kbd">⌘K</kbd>
               </button>
             </div>
@@ -799,11 +800,11 @@
                 <span>14 días seguidos</span>
               </div>
 
-              <button class="nets-btn-icon" id="btn-toggle-theme" title="Alternar tema">
+              <button class="nets-btn-icon" id="btn-toggle-theme" title="Alternar tema" aria-label="Alternar tema claro u oscuro">
                 ${icon(isDark ? 'sun' : 'moon', 'currentColor', 18)}
               </button>
 
-              <div class="nets-mobile-avatar" id="btn-user-popover">
+              <div class="nets-mobile-avatar" id="btn-user-popover" role="button" tabindex="0" aria-label="Menú de usuario">
                 ${auth ? auth.avatar : 'US'}
               </div>
             </div>
@@ -842,9 +843,9 @@
       <div class="nets-auth-container fade-up">
         <div class="nets-auth-card">
           <div class="nets-auth-header">
-            <img src="logo.svg" alt="Nets Logo" class="nets-auth-logo" onerror="this.outerHTML='<h1 class=\\'nets-logo-text-big\\'>NETS</h1>'" />
-            <h2 class="nets-auth-title">Acceso al Portal Empresarial</h2>
-            <p class="nets-auth-subtitle">Ingrese con sus credenciales de red corporativa Nets Colombia</p>
+            <img src="logo.svg" alt="Nets Company" class="nets-auth-logo" onerror="this.outerHTML='<h1 class=\\'nets-logo-text-big\\'>NETS</h1>'" />
+            <h2 class="nets-auth-title">Acceso a Nets Business Core</h2>
+            <p class="nets-auth-subtitle">Ingrese a Nets Business Core con sus credenciales Nets Company</p>
           </div>
 
           <form id="nets-login-form" class="nets-auth-form">
@@ -863,7 +864,7 @@
                 <input type="checkbox" checked id="remember-me" />
                 <span>Recordar sesión segura</span>
               </label>
-              <a href="javascript:void(0)" class="nets-link" id="link-forgot-pw">¿Olvidó su clave?</a>
+              <button type="button" class="nets-link" id="link-forgot-pw">¿Olvidó su clave?</button>
             </div>
 
             <button type="submit" class="nets-btn nets-btn-primary nets-btn-block">
@@ -1057,7 +1058,7 @@
           <div class="muted" style="font-size:14px;margin:0 0 8px">${formatCOP(sum)}</div>
           <div class="kanban-cards-stack" data-drop="${stage.id}">
             ${cards.map(d => `
-              <article class="kanban-card" draggable="true" data-id="${d.id}">
+              <article class="kanban-card" draggable="true" data-id="${d.id}" role="button" tabindex="0" aria-grabbed="false" aria-label="Oportunidad ${d.client}, ${formatCOP(d.amount)}. Arrastre para cambiar de etapa.">
                 <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
                   <div class="nets-user-avatar" style="width:32px;height:32px;font-size:12px;background:#E8F6FC;color:#2DAAE1">${d.initials}</div>
                   <div>
@@ -1104,7 +1105,7 @@
         <aside class="nets-card" style="padding:12px;display:${isMobileChatDetail?'none':'flex'};flex-direction:column;gap:6px;overflow:auto">${list}</aside>
         <div class="nets-card" style="display:${(!isMobileChatDetail && window.innerWidth<800)?'none':'flex'};flex-direction:column;padding:0;overflow:hidden">
           <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
-            <button type="button" id="chat-back" class="nets-btn-icon" style="display:none">${icon('home','currentColor',18)}</button>
+            <button type="button" id="chat-back" class="nets-btn-icon" aria-label="Volver a la lista de chats" style="display:none">${icon('home','currentColor',18)}</button>
             <div class="nets-user-avatar" style="background:#E8F6FC;color:#2DAAE1">${active.avatar}</div>
             <div>
               <strong>${active.name}</strong>
