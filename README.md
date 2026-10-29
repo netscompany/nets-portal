@@ -1,9 +1,11 @@
 # Nets Portal (vista previa)
 
-Portal cliente Nets Company. Vista previa estática generada con Velora (pantallas con datos de ejemplo).
+Portal cliente Nets Company — mobile-first + PWA.
 
 Preview: https://nets-portal-preview.netlify.app
 
-Login mock: cualquier email/clave.
+Login demo: cualquier correo/contraseña.
 
-Próximo: Angular standalone conectado a erp.netscompany.co + módulo nets_branding en Odoo.
+Incluye: navegación inferior en móvil, CRM kanban, WhatsApp, administración de aplicaciones, manifest, service worker e iconos de marca.
+
+Próximo: Angular standalone conectado a erp.netscompany.co.
