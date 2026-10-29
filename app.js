@@ -1,1315 +1,1377 @@
 (function () {
   'use strict';
 
-  // --- ESTADO GLOBAL ---
-  const state = {
-    auth: localStorage.getItem('nets_auth') === 'true',
-    user: {
-      name: 'Ger',
-      role: 'Administrador',
-      email: 'gerencia@netscompany.co'
-    },
-    activeChatId: 1,
-    mobileChatView: false, // true muestra conversación en móvil
-    installPrompt: null,
-    apps: JSON.parse(localStorage.getItem('nets_apps') || 'null') || [
-      { id: 'crm', name: 'CRM', desc: 'Canales comerciales, embudos y seguimiento', route: '#/crm', icon: 'crm', enabled: true },
-      { id: 'whatsapp', name: 'WhatsApp', desc: 'Atención multicanal y mensajería oficial', route: '#/chat', icon: 'chat', enabled: true },
-      { id: 'inventory', name: 'Inventario', desc: 'Control de bodegas, existencias y movimientos', route: '#/inventory', icon: 'inventory', enabled: true },
-      { id: 'invoice', name: 'Facturación', desc: 'Facturas electrónicas DIAN, pagos y cobros', route: '#/invoice', icon: 'invoice', enabled: true },
-      { id: 'support', name: 'Casos y Soporte', desc: 'Mesa de ayuda y requerimientos de clientes', route: '#/support', icon: 'support', enabled: false }
-    ],
-    crmStages: ['PENDIENTE', 'CONTACTADO', 'COTIZACIÓN ENVIADA', 'EN NEGOCIACIÓN', 'GANADO', 'PERDIDO'],
-    opportunities: [
-      { id: 'opp-1', name: 'Distribuidora Bogotá S.A.S.', contact: 'Andrés Morales', value: 14500000, stage: 'PENDIENTE', date: 'Hoy, 09:15 a. m.' },
-      { id: 'opp-2', name: 'Clínica Odontológica Antioquia', contact: 'Dra. Paola Ortiz', value: 8900000, stage: 'CONTACTADO', date: 'Ayer, 04:30 p. m.' },
-      { id: 'opp-3', name: 'Inversiones del Café Eje', contact: 'Mateo Cárdenas', value: 32000000, stage: 'COTIZACIÓN ENVIADA', date: '24 oct, 11:20 a. m.' },
-      { id: 'opp-4', name: 'Constructora Bolívar Valle', contact: 'Ing. Rodrigo Silva', value: 58000000, stage: 'EN NEGOCIACIÓN', date: '23 oct, 02:45 p. m.' },
-      { id: 'opp-5', name: 'Supermercados Boyacá Real', contact: 'Gloria Espinosa', value: 19200000, stage: 'GANADO', date: '21 oct, 10:00 a. m.' },
-      { id: 'opp-6', name: 'Suministros Caribe Cart.', contact: 'Felipe Mendoza', value: 6500000, stage: 'PERDIDO', date: '19 oct, 03:15 p. m.' }
-    ],
-    conversations: [
-      {
-        id: 1,
-        contact: 'Carlos Restrepo · Medellín',
-        phone: '+57 310 445 8920',
-        unread: 1,
-        time: '10:45 a. m.',
-        messages: [
-          { sender: 'them', text: 'Buenos días, requerimos confirmación de la cotización enviada ayer para Medellín.', time: '10:30 a. m.' },
-          { sender: 'me', text: 'Con gusto Carlos. Estamos validando el stock de entrega prioritaria.', time: '10:42 a. m.' },
-          { sender: 'them', text: 'Perfecto, quedamos atentos al enlace de pago.', time: '10:45 a. m.' }
-        ]
-      },
-      {
-        id: 2,
-        contact: 'Elena Gómez · Cali',
-        phone: '+57 315 889 1234',
-        unread: 0,
-        time: '09:20 a. m.',
-        messages: [
-          { sender: 'them', text: 'Hola Nets Company, ¿la plataforma emite reporte directo a contabilidad?', time: '09:12 a. m.' },
-          { sender: 'me', text: 'Hola Elena, sí. Genera balance conciliado y XML DIAN.', time: '09:20 a. m.' }
-        ]
-      },
-      {
-        id: 3,
-        contact: 'Transportes Caribe S.A.S.',
-        phone: '+57 300 234 5678',
-        unread: 0,
-        time: 'Ayer, 04:15 p. m.',
-        messages: [
-          { sender: 'me', text: 'Se ha expedido la orden de servicio 4480 para Barranquilla.', time: '04:10 p. m.' },
-          { sender: 'them', text: 'Recibido, procedemos con el despacho mañana temprano.', time: '04:15 p. m.' }
-        ]
-      }
-    ]
+  /* ==========================================================================
+     NETS ENTERPRISE PWA - SINGLE APP ENGINE
+     Marca Marge + Nets | Vanilla JS IIFE Single Source of Truth
+     ========================================================================== */
+
+  // --- Constantes de Almacenamiento ---
+  const STORAGE_KEYS = {
+    AUTH: 'nets_auth',
+    THEME: 'nets_theme',
+    APPS: 'nets_apps_state',
+    ONBOARDED: 'nets_onboarded',
+    DEALS: 'nets_crm_deals',
+    CHATS: 'nets_chat_history'
   };
 
-  function saveAppsState() {
-    localStorage.setItem('nets_apps', JSON.stringify(state.apps));
-  }
+  // --- Estado Global ---
+  let pwaInstallEvent = null;
+  let activeChatId = 'chat-1';
+  let isMobileChatDetail = false;
 
-  function formatCOP(num) {
-    return '$ ' + Number(num).toLocaleString('es-CO');
-  }
+  // Usuario predeterminado (Colombia)
+  const DEFAULT_USER = {
+    name: 'Gerardo Ortiz',
+    shortName: 'Ger',
+    email: 'gerardo.ortiz@nets.com.co',
+    role: 'Director Comercial Regional',
+    avatar: 'GO',
+    city: 'Bogotá D.C., Colombia',
+    streakDays: 14,
+    level: 'Líder Platinum'
+  };
 
-  // --- ICONOS SVG (STROKE 1.8, ROUNDED, CONSISTENTES) ---
-  function icon(name, color = '#2DAAE1', size = 20) {
-    const s = `width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="nets-icon nets-icon-${name}"`;
-    switch (name) {
-      case 'home':
-        return `<svg ${s}><path d="M3 10.5l9-7.5 9 7.5v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9z"/><polyline points="9 21 9 12 15 12 15 21"/></svg>`;
-      case 'crm':
-        return `<svg ${s}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>`;
-      case 'chat':
-        return `<svg ${s}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`;
-      case 'apps':
-        return `<svg ${s}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>`;
-      case 'inventory':
-        return `<svg ${s}><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><polyline points="3.27 7.96 12 12.96 20.73 7.96"/><line x1="12" y1="22.96" x2="12" y2="12.96"/></svg>`;
-      case 'invoice':
-        return `<svg ${s}><path d="M14 2H6a2 2 0 0 0-2 2v16l3-1.5L10 20l3-1.5 3 1.5 4-2V4a2 2 0 0 0-2-2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg>`;
-      case 'support':
-        return `<svg ${s}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/></svg>`;
-      case 'logout':
-        return `<svg ${s}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
-      case 'back':
-        return `<svg ${s}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`;
-      case 'check':
-        return `<svg ${s}><polyline points="20 6 9 17 4 12"/></svg>`;
-      case 'send':
-        return `<svg ${s}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
-      case 'download':
-        return `<svg ${s}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-      case 'close':
-        return `<svg ${s}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-      default:
-        return `<svg ${s}><circle cx="12" cy="12" r="9"/></svg>`;
+  // Apps: Fuente única de la verdad
+  const INITIAL_APPS = [
+    {
+      id: 'crm',
+      title: 'Oportunidades',
+      icon: 'crm',
+      enabled: true,
+      route: '#/crm',
+      badge: '6 fases',
+      desc: 'Pipeline comercial, pronósticos ponderados y metas B2B'
+    },
+    {
+      id: 'chat',
+      title: 'WhatsApp',
+      icon: 'chat',
+      enabled: true,
+      route: '#/chat',
+      badge: 'En vivo',
+      desc: 'Bandeja omnicanal conectada a Meta Cloud API y bot IA'
+    },
+    {
+      id: 'inventory',
+      title: 'Inventario',
+      icon: 'box',
+      enabled: true,
+      route: '#/inventory',
+      badge: '4 bodegas',
+      desc: 'Control multisede Montevideo, Guayabal, Yumbo y Fontibón'
+    },
+    {
+      id: 'invoice',
+      title: 'Facturación DIAN',
+      icon: 'receipt',
+      enabled: true,
+      route: '#/invoice',
+      badge: 'UBL 2.1',
+      desc: 'Emisión electrónica, CUFE, eventos Radian y notas crédito'
+    },
+    {
+      id: 'support',
+      title: 'Casos y Soporte',
+      icon: 'headset',
+      enabled: false,
+      route: '#/support',
+      badge: 'Mesa ITIL',
+      desc: 'Acuerdos de nivel de servicio (SLA), tickets N1 a N3 y escalamiento'
+    }
+  ];
+
+  // Oportunidades CRM (6 etapas reales sin palabra "ejemplo")
+  const INITIAL_DEALS = [
+    {
+      id: 'deal-101',
+      title: 'Grupo Nutresa - Enlace SD-WAN y Nube Híbrida',
+      client: 'Grupo Nutresa S.A.',
+      stage: 'prospeccion',
+      amount: 48500000,
+      initials: 'GN',
+      tag: 'Alimentos',
+      days: 4,
+      priority: 'alta'
+    },
+    {
+      id: 'deal-102',
+      title: 'Cementos Argos - Renovación Datacenter Principal',
+      client: 'Cementos Argos S.A.',
+      stage: 'calificacion',
+      amount: 135000000,
+      initials: 'CA',
+      tag: 'Construcción',
+      days: 9,
+      priority: 'urgente'
+    },
+    {
+      id: 'deal-103',
+      title: 'Celsia Energía - Bot WhatsApp Atención Cuadrillas',
+      client: 'Celsia Colombia S.A. E.S.P.',
+      stage: 'propuesta',
+      amount: 64200000,
+      initials: 'CE',
+      tag: 'Energía',
+      days: 12,
+      priority: 'media'
+    },
+    {
+      id: 'deal-104',
+      title: 'Bancolombia - Seguridad Perimetral y SOC Nets Guard',
+      client: 'Bancolombia S.A.',
+      stage: 'negociacion',
+      amount: 218000000,
+      initials: 'BC',
+      tag: 'Banca y Fintech',
+      days: 18,
+      priority: 'alta'
+    },
+    {
+      id: 'deal-105',
+      title: 'Carvajal Pulpa y Papel - Cableado Estructurado Planta Yumbo',
+      client: 'Carvajal S.A.',
+      stage: 'ganado',
+      amount: 89000000,
+      initials: 'CJ',
+      tag: 'Manufactura',
+      days: 25,
+      priority: 'baja'
+    },
+    {
+      id: 'deal-106',
+      title: 'Rappi Colombia - Interconexión Dark Fiber Sede Chicó',
+      client: 'Rappi S.A.S.',
+      stage: 'perdido',
+      amount: 42000000,
+      initials: 'RP',
+      tag: 'Tecnología',
+      days: 31,
+      priority: 'baja'
+    },
+    {
+      id: 'deal-107',
+      title: 'Terpel - Monitoreo IoT Estaciones de Servicio',
+      client: 'Organización Terpel S.A.',
+      stage: 'propuesta',
+      amount: 112000000,
+      initials: 'TP',
+      tag: 'Petróleo & Gas',
+      days: 6,
+      priority: 'alta'
+    }
+  ];
+
+  // Chats realistas estilo WhatsApp
+  const INITIAL_CHATS = [
+    {
+      id: 'chat-1',
+      name: 'Ing. Carlos Mario Restrepo',
+      company: 'Grupo Nutresa',
+      phone: '+57 314 829 1104',
+      avatar: 'CR',
+      online: true,
+      lastTime: '10:42 a. m.',
+      unread: 2,
+      messages: [
+        { id: 'm1', from: 'them', text: 'Buenos días Gerardo, revisamos el pliego de la conectividad en Medellín.', time: '10:30 a. m.' },
+        { id: 'm2', from: 'them', text: '¿Es posible incluir redundancia 4G con tarjeta eSIM multired?', time: '10:31 a. m.' },
+        { id: 'm3', from: 'me', text: '¡Buen día, Carlos! Por supuesto, Nets incluye failover automático a red Claro/Tigo sin costo adicional.', time: '10:38 a. m.' },
+        { id: 'm4', from: 'them', text: 'Excelente. Envíame la adenda con la propuesta económica para firmar.', time: '10:42 a. m.' }
+      ]
+    },
+    {
+      id: 'chat-2',
+      name: 'Dra. Marcela Echeverri',
+      company: 'Cementos Argos',
+      phone: '+57 301 554 9081',
+      avatar: 'ME',
+      online: false,
+      lastTime: 'Ayer',
+      unread: 0,
+      messages: [
+        { id: 'm1', from: 'them', text: 'Hola Gerardo, el comité directivo aprobó el presupuesto para la fase 1.', time: 'Ayer' },
+        { id: 'm2', from: 'me', text: 'Excelente noticia Marcela. Coordinamos visita del ingeniero residente para el lunes.', time: 'Ayer' }
+      ]
+    },
+    {
+      id: 'chat-3',
+      name: 'Bot Asistente Nets IA',
+      company: 'Canal Oficial Nets Colombia',
+      phone: '+57 320 000 8899',
+      avatar: 'AI',
+      online: true,
+      lastTime: '09:15 a. m.',
+      unread: 0,
+      messages: [
+        { id: 'm1', from: 'them', text: 'Reporte matutino: 12 cotizaciones sincronizadas exitosamente con la DIAN.', time: '09:00 a. m.' },
+        { id: 'm2', from: 'them', text: 'Se detectó latencia menor a 11ms en el nodo troncal Bogotá-Cali.', time: '09:15 a. m.' }
+      ]
+    }
+  ];
+
+  // Inventario y Facturas Mock
+  const INITIAL_INVENTORY = [
+    { sku: 'NTS-RTR-900', desc: 'Router Edge Óptico 10Gbps SFP+', stock: 24, min: 5, bodega: 'Montevideo (Bogotá)', cost: 3850000 },
+    { sku: 'NTS-SWT-48P', desc: 'Switch Capa 3 Gestionable 48 Puertos PoE+', stock: 42, min: 10, bodega: 'Guayabal (Medellín)', cost: 2490000 },
+    { sku: 'NTS-AP-W6E', desc: 'Punto de Acceso Wi-Fi 6E Enterprise Mesh', stock: 110, min: 25, bodega: 'Yumbo (Valle)', cost: 890000 },
+    { sku: 'NTS-FBR-SM1', desc: 'Bobina Fibra Monomodo 2km Drop Blindada', stock: 18, min: 4, bodega: 'Fontibón (Bogotá)', cost: 1420000 },
+    { sku: 'NTS-UPS-3KV', desc: 'UPS Online Onda Senoidal Pura 3000VA Rack', stock: 7, min: 3, bodega: 'Montevideo (Bogotá)', cost: 5120000 }
+  ];
+
+  const INITIAL_INVOICES = [
+    { prefix: 'SETT', number: 8920, client: 'Bancolombia S.A.', nit: '890.903.938-8', amount: 259420000, date: '2025-05-12', status: 'Validada DIAN', cufe: 'f83a79d20c8b3e1' },
+    { prefix: 'SETT', number: 8921, client: 'Celsia Colombia S.A.', nit: '900.284.453-1', amount: 76398000, date: '2025-05-13', status: 'Validada DIAN', cufe: 'c491b827e69a03f' },
+    { prefix: 'SETT', number: 8922, client: 'Organización Terpel S.A.', nit: '860.004.522-3', amount: 133280000, date: '2025-05-14', status: 'Validada DIAN', cufe: '98d41cf5e02ab71' },
+    { prefix: 'SETT', number: 8923, client: 'Rappi S.A.S.', nit: '900.843.801-0', amount: 49980000, date: '2025-05-14', status: 'En Proceso', cufe: 'Pendiente' }
+  ];
+
+  // --- Recuperación de Estado ---
+  function getStoredAuth() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.AUTH);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      return null;
     }
   }
 
-  // --- INYECCIÓN DE ESTILOS ---
-  function injectStyles() {
-    if (document.getElementById('nets-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'nets-styles';
-    style.textContent = `
-      :root {
-        --nets-navy: #061E33;
-        --nets-orange: #F58233;
-        --nets-gradient: linear-gradient(90deg, #F5A623, #D9472B);
-        --nets-blue: #2DAAE1;
-        --nets-bg: #F4F7FB;
-        --nets-support: #3D5166;
-        --nets-main: #0F1C2A;
-        --nets-card-border: #E3E8EE;
-        --radius-card: 10px;
-        --radius-panel: 16px;
-      }
-      * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-      body {
-        font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: var(--nets-bg);
-        color: var(--nets-main);
-        font-size: 15px;
-        line-height: 1.45;
-        min-height: 100vh;
-      }
-      a { color: inherit; text-decoration: none; }
-      button { font-family: inherit; cursor: pointer; border: none; outline: none; }
-      input, textarea { font-family: inherit; }
-
-      /* Banner discreto */
-      .demo-banner {
-        background: var(--nets-navy);
-        color: #FFFFFF;
-        font-size: 12px;
-        letter-spacing: 0.3px;
-        padding: 6px 16px;
-        text-align: center;
-        font-weight: 500;
-        position: sticky;
-        top: 0;
-        z-index: 999;
-      }
-
-      /* Barra PWA instalable */
-      .pwa-bar {
-        background: #0B253F;
-        color: #FFFFFF;
-        padding: 8px 14px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        font-size: 13px;
-      }
-      .pwa-bar button.install-btn {
-        background: var(--nets-gradient);
-        color: #fff;
-        font-weight: 600;
-        padding: 6px 14px;
-        border-radius: 8px;
-        font-size: 12px;
-        white-space: nowrap;
-      }
-      .pwa-bar button.close-btn {
-        background: transparent;
-        color: #A0B2C6;
-        display: flex;
-        align-items: center;
-      }
-
-      /* Layout */
-      .app-layout {
-        display: flex;
-        min-height: calc(100vh - 29px);
-      }
-      .sidebar {
-        display: none;
-      }
-
-      /* Bottom Nav móvil */
-      .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: #FFFFFF;
-        border-top: 1px solid var(--nets-card-border);
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        height: 64px;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
-        z-index: 900;
-      }
-      .bottom-nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 3px;
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--nets-support);
-        min-height: 48px;
-      }
-      .bottom-nav-item.active {
-        color: var(--nets-orange);
-      }
-      .bottom-nav-item.active svg {
-        stroke: var(--nets-orange);
-      }
-
-      /* Main Content */
-      .main-content {
-        flex: 1;
-        padding: 16px 16px 84px 16px;
-        max-width: 1400px;
-        margin: 0 auto;
-        width: 100%;
-      }
-
-      /* Header de sección */
-      .page-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-        gap: 12px;
-      }
-      .page-title {
-        font-size: 22px;
-        font-weight: 700;
-        color: var(--nets-navy);
-      }
-      .page-subtitle {
-        font-size: 14px;
-        color: var(--nets-support);
-        margin-top: 2px;
-      }
-
-      /* Botón primario */
-      .btn-primary {
-        background: var(--nets-gradient);
-        color: #FFFFFF;
-        font-weight: 600;
-        border-radius: var(--radius-card);
-        padding: 10px 18px;
-        font-size: 14px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        min-height: 44px;
-        transition: opacity 0.2s;
-      }
-      .btn-primary:active { opacity: 0.88; }
-      .btn-secondary {
-        background: #FFFFFF;
-        border: 1px solid var(--nets-card-border);
-        color: var(--nets-navy);
-        font-weight: 600;
-        border-radius: var(--radius-card);
-        padding: 9px 16px;
-        font-size: 14px;
-        display: inline-flex;
-        align-items: center;
-        min-height: 44px;
-      }
-
-      /* HOME Grid */
-      .home-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 16px;
-        width: 100%;
-      }
-      .home-card {
-        background: #FFFFFF;
-        border: 1px solid var(--nets-card-border);
-        border-radius: var(--radius-card);
-        padding: 20px;
-        min-height: 140px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        transition: transform 0.15s, box-shadow 0.15s;
-        text-align: left;
-      }
-      .home-card:active {
-        transform: translateY(1px);
-      }
-      .home-card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 12px;
-      }
-      .home-card-icon-wrap {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
-        background: rgba(45, 170, 225, 0.12);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .home-card-title {
-        font-size: 17px;
-        font-weight: 700;
-        color: var(--nets-navy);
-        margin-bottom: 6px;
-      }
-      .home-card-desc {
-        font-size: 13px;
-        color: var(--nets-support);
-        line-height: 1.4;
-      }
-      .home-card-action {
-        margin-top: 14px;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--nets-blue);
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      /* CRM KANBAN */
-      .crm-board {
-        display: flex;
-        gap: 16px;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        padding-bottom: 16px;
-        -webkit-overflow-scrolling: touch;
-      }
-      .crm-col {
-        flex: 0 0 280px;
-        scroll-snap-align: start;
-        background: #EAEEF4;
-        border-radius: var(--radius-panel);
-        padding: 14px;
-        display: flex;
-        flex-direction: column;
-        max-height: calc(100vh - 180px);
-      }
-      .crm-col-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 12px;
-        font-weight: 700;
-        font-size: 12px;
-        letter-spacing: 0.6px;
-        color: var(--nets-navy);
-      }
-      .crm-badge {
-        background: #FFFFFF;
-        border-radius: 12px;
-        padding: 2px 8px;
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--nets-support);
-      }
-      .crm-cards {
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding-right: 2px;
-      }
-      .crm-card {
-        background: #FFFFFF;
-        border-radius: var(--radius-card);
-        padding: 14px;
-        border: 1px solid var(--nets-card-border);
-        box-shadow: 0 1px 3px rgba(6,30,51,0.04);
-      }
-      .crm-card-title {
-        font-weight: 700;
-        color: var(--nets-navy);
-        font-size: 14px;
-        margin-bottom: 4px;
-      }
-      .crm-card-contact {
-        font-size: 12px;
-        color: var(--nets-support);
-        margin-bottom: 10px;
-      }
-      .crm-card-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding-top: 8px;
-        border-top: 1px solid #F0F3F7;
-      }
-      .crm-card-value {
-        font-size: 14px;
-        font-weight: 700;
-        color: var(--nets-navy); /* NUNCA verde, SIEMPRE navy */
-      }
-      .crm-card-date {
-        font-size: 11px;
-        color: var(--nets-support);
-      }
-
-      /* WHATSAPP CHAT */
-      .chat-wrapper {
-        background: #FFFFFF;
-        border-radius: var(--radius-panel);
-        border: 1px solid var(--nets-card-border);
-        display: flex;
-        overflow: hidden;
-        height: calc(100vh - 160px);
-        min-height: 480px;
-      }
-      .chat-sidebar {
-        width: 100%;
-        border-right: 1px solid var(--nets-card-border);
-        display: flex;
-        flex-direction: column;
-        background: #FFFFFF;
-      }
-      .chat-sidebar-header {
-        padding: 16px;
-        border-bottom: 1px solid var(--nets-card-border);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .chat-sidebar-title {
-        font-size: 17px;
-        font-weight: 700;
-        color: var(--nets-navy);
-      }
-      .chat-list {
-        overflow-y: auto;
-        flex: 1;
-      }
-      .chat-item {
-        padding: 14px 16px;
-        border-bottom: 1px solid #F1F4F8;
-        cursor: pointer;
-        transition: background 0.15s;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .chat-item:hover, .chat-item.active {
-        background: #F4F7FB;
-      }
-      .chat-item-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-      }
-      .chat-item-name {
-        font-weight: 600;
-        font-size: 14px;
-        color: var(--nets-navy);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        flex: 1;
-      }
-      .chat-item-time {
-        font-size: 11px;
-        color: var(--nets-support);
-        flex-shrink: 0;
-      }
-      .chat-item-phone {
-        font-size: 12px;
-        color: var(--nets-support);
-      }
-      .chat-item-snippet {
-        font-size: 13px;
-        color: #5A6D82;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .chat-main {
-        display: none;
-        flex: 1;
-        flex-direction: column;
-        background: var(--nets-bg); /* NUNCA beige, SIEMPRE #F4F7FB */
-      }
-      .chat-main-header {
-        background: #FFFFFF;
-        border-bottom: 1px solid var(--nets-card-border);
-        padding: 12px 16px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-height: 60px;
-      }
-      .chat-back-btn {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
-        background: #F4F7FB;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .chat-main-title {
-        font-weight: 700;
-        font-size: 15px;
-        color: var(--nets-navy);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .chat-main-phone {
-        font-size: 12px;
-        color: var(--nets-support);
-      }
-      .chat-messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .chat-bubble {
-        max-width: 82%;
-        padding: 10px 14px;
-        border-radius: 12px;
-        font-size: 14px;
-        line-height: 1.4;
-        position: relative;
-        word-break: break-word;
-      }
-      /* Enviados navy/blanco, recibidos #EBF0F8/#0F1C2A */
-      .chat-bubble.sent {
-        align-self: flex-end;
-        background: var(--nets-navy);
-        color: #FFFFFF;
-        border-bottom-right-radius: 2px;
-      }
-      .chat-bubble.received {
-        align-self: flex-start;
-        background: #EBF0F8;
-        color: var(--nets-main);
-        border-bottom-left-radius: 2px;
-      }
-      .chat-bubble-time {
-        font-size: 10px;
-        margin-top: 4px;
-        text-align: right;
-        opacity: 0.75;
-      }
-      .chat-input-bar {
-        background: #FFFFFF;
-        border-top: 1px solid var(--nets-card-border);
-        padding: 10px 14px;
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-      .chat-input {
-        flex: 1;
-        background: #F4F7FB;
-        border: 1px solid var(--nets-card-border);
-        border-radius: 20px;
-        padding: 10px 16px;
-        font-size: 14px;
-        color: var(--nets-main);
-      }
-      .chat-send-btn {
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        background: var(--nets-gradient);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        flex-shrink: 0;
-      }
-
-      /* ADMIN DE APLICACIONES */
-      .admin-table {
-        background: #FFFFFF;
-        border-radius: var(--radius-panel);
-        border: 1px solid var(--nets-card-border);
-        overflow: hidden;
-      }
-      .admin-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 20px;
-        border-bottom: 1px solid #EDF1F6;
-        gap: 16px;
-      }
-      .admin-row:last-child { border-bottom: none; }
-      .admin-row-left {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-      }
-      .admin-row-info h4 {
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--nets-navy);
-      }
-      .admin-row-info p {
-        font-size: 13px;
-        color: var(--nets-support);
-      }
-      /* Switch toggle */
-      .switch {
-        position: relative;
-        display: inline-block;
-        width: 48px;
-        height: 26px;
-        flex-shrink: 0;
-      }
-      .switch input { opacity: 0; width: 0; height: 0; }
-      .slider {
-        position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-        background-color: #D3DCDE;
-        transition: .25s;
-        border-radius: 26px;
-      }
-      .slider:before {
-        position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px;
-        background-color: white;
-        transition: .25s;
-        border-radius: 50%;
-      }
-      input:checked + .slider {
-        background: var(--nets-gradient);
-      }
-      input:checked + .slider:before {
-        transform: translateX(22px);
-      }
-
-      /* PÁGINAS GENÉRICAS (Inventario, Facturación, etc.) */
-      .panel-card {
-        background: #FFFFFF;
-        border: 1px solid var(--nets-card-border);
-        border-radius: var(--radius-panel);
-        padding: 24px;
-      }
-
-      /* LOGIN SCREEN */
-      .login-container {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        background: var(--nets-bg);
-      }
-      .login-box {
-        width: 100%;
-        max-width: 380px;
-        background: #FFFFFF;
-        border: 1px solid var(--nets-card-border);
-        border-radius: var(--radius-panel);
-        padding: 32px 24px;
-        box-shadow: 0 4px 20px rgba(6,30,51,0.06);
-      }
-      .login-logo {
-        height: 48px;
-        max-width: 220px;
-        margin: 0 auto 20px auto;
-        display: block;
-        object-fit: contain;
-      }
-      .login-field {
-        margin-bottom: 16px;
-      }
-      .login-field label {
-        display: block;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--nets-navy);
-        margin-bottom: 6px;
-      }
-      .login-input {
-        width: 100%;
-        height: 46px;
-        padding: 0 14px;
-        border-radius: var(--radius-card);
-        border: 1px solid var(--nets-card-border);
-        font-size: 14px;
-        background: #FFFFFF;
-        color: var(--nets-main);
-      }
-      .login-input:focus {
-        border-color: var(--nets-blue);
-        outline: none;
-      }
-
-      /* DESKTOP (>= 768px) */
-      @media (min-width: 768px) {
-        .bottom-nav { display: none !important; }
-        .sidebar {
-          display: flex;
-          flex-direction: column;
-          width: 260px;
-          background: var(--nets-navy);
-          color: #FFFFFF;
-          position: sticky;
-          top: 29px;
-          height: calc(100vh - 29px);
-          flex-shrink: 0;
-        }
-        .sidebar-logo-wrap {
-          padding: 24px 20px 20px 20px;
-          border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-        .sidebar-logo {
-          height: 38px;
-          max-width: 180px;
-          object-fit: contain;
-        }
-        .sidebar-menu {
-          padding: 16px 12px;
-          flex: 1;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .sidebar-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 11px 14px;
-          border-radius: 8px;
-          color: #B3C5D7;
-          font-weight: 600;
-          font-size: 14px;
-          transition: background 0.15s, color 0.15s;
-        }
-        .sidebar-item:hover {
-          background: rgba(255, 255, 255, 0.06);
-          color: #FFFFFF;
-        }
-        .sidebar-item.active {
-          background: var(--nets-gradient);
-          color: #FFFFFF;
-        }
-        .sidebar-item.active svg {
-          stroke: #FFFFFF !important;
-        }
-        .sidebar-footer {
-          padding: 16px;
-          border-top: 1px solid rgba(255,255,255,0.08);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .sidebar-user {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .sidebar-avatar {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          background: rgba(45, 170, 225, 0.25);
-          color: #FFFFFF;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 14px;
-        }
-        .sidebar-user-name {
-          font-size: 13px;
-          font-weight: 700;
-          color: #FFFFFF;
-          line-height: 1.2;
-        }
-        .sidebar-user-role {
-          font-size: 11px;
-          color: #8CA3BA;
-        }
-
-        .main-content {
-          padding: 28px 32px 32px 32px;
-        }
-        .chat-sidebar {
-          width: 340px;
-        }
-        .chat-main {
-          display: flex !important;
-        }
-        .chat-back-btn {
-          display: none !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
+  function setStoredAuth(user) {
+    if (user) {
+      localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.AUTH);
+    }
   }
 
-  // --- RENDER LAYOUT GENERAL ---
-  function renderLayout(contentHtml, activeRoute) {
-    const enabledApps = state.apps.filter(a => a.enabled);
+  function getAppsState() {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.APPS);
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    localStorage.setItem(STORAGE_KEYS.APPS, JSON.stringify(INITIAL_APPS));
+    return INITIAL_APPS;
+  }
 
-    const bannerHtml = `
-      <div class="demo-banner">
-        Vista previa · Datos de demostración
+  function saveAppsState(apps) {
+    localStorage.setItem(STORAGE_KEYS.APPS, JSON.stringify(apps));
+  }
+
+  function getDeals() {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.DEALS);
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    localStorage.setItem(STORAGE_KEYS.DEALS, JSON.stringify(INITIAL_DEALS));
+    return INITIAL_DEALS;
+  }
+
+  function saveDeals(deals) {
+    localStorage.setItem(STORAGE_KEYS.DEALS, JSON.stringify(deals));
+  }
+
+  function getChats() {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.CHATS);
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    localStorage.setItem(STORAGE_KEYS.CHATS, JSON.stringify(INITIAL_CHATS));
+    return INITIAL_CHATS;
+  }
+
+  function saveChats(chats) {
+    localStorage.setItem(STORAGE_KEYS.CHATS, JSON.stringify(chats));
+  }
+
+  // --- Utilidades ---
+  function formatCOP(value) {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      maximumFractionDigits: 0
+    }).format(value);
+  }
+
+  function getGreeting(name) {
+    const hour = new Date().getHours();
+    let salutation = 'Buenas noches';
+    if (hour >= 5 && hour < 12) salutation = 'Buenos días';
+    else if (hour >= 12 && hour < 19) salutation = 'Buenas tardes';
+    return `${salutation}, ${name}`;
+  }
+
+  // Generador de Iconos SVG Familia Coherente (Stroke #2DAAE1 o currentColor)
+  function icon(name, color = '#2DAAE1', size = 20) {
+    const paths = {
+      crm: '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
+      chat: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+      box: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+      receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M16 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/>',
+      headset: '<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>',
+      apps: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+      home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+      search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+      moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+      sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+      download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+      logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+      send: '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
+      check: '<polyline points="20 6 9 17 4 12"/>',
+      arrowLeft: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+      plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+      award: '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
+      bolt: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+      close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'
+    };
+
+    const svgPath = paths[name] || paths.apps;
+    return `
+      <svg class="nets-icon nets-icon-${name}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        ${svgPath}
+      </svg>
+    `.trim();
+  }
+
+  // Notificaciones Toast Modernas
+  function toast(message, type = 'info', duration = 3200) {
+    let container = document.getElementById('nets-toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'nets-toast-container';
+      container.className = 'nets-toast-container';
+      document.body.appendChild(container);
+    }
+
+    const toastEl = document.createElement('div');
+    toastEl.className = `nets-toast nets-toast-${type} fade-up`;
+    const iconColor = type === 'success' ? '#2DAAE1' : type === 'error' ? '#EF4444' : '#2DAAE1';
+    toastEl.innerHTML = `
+      <span class="nets-toast-icon">${icon(type === 'success' ? 'check' : 'bolt', iconColor, 18)}</span>
+      <span class="nets-toast-msg">${message}</span>
+    `;
+
+    container.appendChild(toastEl);
+    setTimeout(() => {
+      toastEl.classList.add('nets-toast-hide');
+      setTimeout(() => toastEl.remove(), 260);
+    }, duration);
+  }
+
+  // Count Up fluido para KPIs
+  function countUp(element, endVal, duration = 1200, isCurrency = false) {
+    if (!element) return;
+    const startVal = 0;
+    const startTime = performance.now();
+    const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (isReduced) {
+      element.textContent = isCurrency ? formatCOP(endVal) : endVal.toLocaleString('es-CO');
+      return;
+    }
+
+    function update(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // easeOutCubic
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const current = Math.floor(startVal + (endVal - startVal) * ease);
+
+      element.textContent = isCurrency ? formatCOP(current) : current.toLocaleString('es-CO');
+
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      } else {
+        element.textContent = isCurrency ? formatCOP(endVal) : endVal.toLocaleString('es-CO');
+      }
+    }
+    requestAnimationFrame(update);
+  }
+
+  // Canvas Sparkline simple sin dependencias
+  function renderSparkline(canvas, dataPoints, strokeColor = '#2DAAE1') {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width = canvas.offsetWidth || 120;
+    const height = canvas.height = canvas.offsetHeight || 36;
+    ctx.clearRect(0, 0, width, height);
+
+    if (!dataPoints || dataPoints.length < 2) return;
+    const min = Math.min(...dataPoints);
+    const max = Math.max(...dataPoints);
+    const range = (max - min) || 1;
+
+    const points = dataPoints.map((val, idx) => {
+      const x = (idx / (dataPoints.length - 1)) * (width - 8) + 4;
+      const y = height - 4 - ((val - min) / range) * (height - 12);
+      return { x, y };
+    });
+
+    // Línea de tendencia
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // Relleno sutil gradiente
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, 'rgba(45, 170, 225, 0.28)');
+    grad.addColorStop(1, 'rgba(45, 170, 225, 0.00)');
+    ctx.lineTo(points[points.length - 1].x, height);
+    ctx.lineTo(points[0].x, height);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  // Confeti de Victoria Canvas para Negocios Ganados (1.5s)
+  function confetti(duration = 1500) {
+    const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (isReduced) return;
+
+    let canvas = document.getElementById('nets-confetti');
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.id = 'nets-confetti';
+      canvas.className = 'nets-confetti-canvas';
+      document.body.appendChild(canvas);
+    }
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width = window.innerWidth;
+    const height = canvas.height = window.innerHeight;
+
+    const colors = ['#2DAAE1', '#0B2545', '#10B981', '#38BDF8', '#F59E0B', '#FFFFFF'];
+    const count = 70;
+    const particles = [];
+
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: width / 2 + (Math.random() - 0.5) * 200,
+        y: height / 2 + (Math.random() - 0.5) * 100,
+        vx: (Math.random() - 0.5) * 14,
+        vy: (Math.random() - 1.6) * 14,
+        size: Math.random() * 8 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        vRot: (Math.random() - 0.5) * 10,
+        alpha: 1
+      });
+    }
+
+    const start = performance.now();
+    function step(timestamp) {
+      const elapsed = timestamp - start;
+      ctx.clearRect(0, 0, width, height);
+
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.35; // Gravedad
+        p.rotation += p.vRot;
+        p.alpha = Math.max(0, 1 - (elapsed / duration));
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        ctx.restore();
+      });
+
+      if (elapsed < duration) {
+        requestAnimationFrame(step);
+      } else {
+        ctx.clearRect(0, 0, width, height);
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  // --- Paleta de Comandos Global (Ctrl+K / Cmd+K) ---
+  function openCommandPalette() {
+    let modal = document.getElementById('nets-cmd-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'nets-cmd-modal';
+      modal.className = 'nets-cmd-modal';
+      modal.innerHTML = `
+        <div class="nets-cmd-backdrop" data-action="close-cmd"></div>
+        <div class="nets-cmd-box fade-up">
+          <div class="nets-cmd-search-wrap">
+            ${icon('search', '#2DAAE1', 20)}
+            <input type="text" id="nets-cmd-input" class="nets-cmd-input" placeholder="Buscar módulo, cliente o comando rápido..." autofocus autocomplete="off" />
+            <kbd class="nets-cmd-esc">ESC</kbd>
+          </div>
+          <div class="nets-cmd-results" id="nets-cmd-results"></div>
+          <div class="nets-cmd-footer">
+            <span>Navegue con <kbd>↑</kbd> <kbd>↓</kbd> y ejecute con <kbd>Enter</kbd></span>
+            <span class="nets-cmd-tag">Nets OS v4.2</span>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      modal.addEventListener('click', (e) => {
+        if (e.target.dataset.action === 'close-cmd') closeCommandPalette();
+      });
+
+      const input = modal.querySelector('#nets-cmd-input');
+      input.addEventListener('input', () => updateCmdResults(input.value));
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeCommandPalette();
+        if (e.key === 'Enter') {
+          const selected = modal.querySelector('.nets-cmd-item.active');
+          if (selected) {
+            selected.click();
+          }
+        }
+      });
+    }
+
+    modal.classList.add('open');
+    const inp = modal.querySelector('#nets-cmd-input');
+    inp.value = '';
+    inp.focus();
+    updateCmdResults('');
+  }
+
+  function closeCommandPalette() {
+    const modal = document.getElementById('nets-cmd-modal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  function updateCmdResults(query) {
+    const container = document.getElementById('nets-cmd-results');
+    if (!container) return;
+    const q = query.trim().toLowerCase();
+
+    const apps = getAppsState().filter(a => a.enabled);
+    const deals = getDeals();
+
+    const items = [
+      { type: 'Acceso Rápido', title: 'Panel de Inicio', route: '#/home', icon: 'home' },
+      ...apps.map(a => ({ type: 'Módulo Habilitado', title: a.title, route: a.route, icon: a.icon })),
+      { type: 'Administración', title: 'Administración de aplicaciones', route: '#/apps', icon: 'apps' },
+      ...deals.map(d => ({ type: 'Oportunidad B2B', title: `${d.client} · ${formatCOP(d.amount)}`, route: '#/crm', icon: 'crm' }))
+    ].filter(item => !q || item.title.toLowerCase().includes(q) || item.type.toLowerCase().includes(q));
+
+    if (items.length === 0) {
+      container.innerHTML = `<div class="nets-cmd-empty">No se encontraron resultados para "${query}"</div>`;
+      return;
+    }
+
+    container.innerHTML = items.slice(0, 7).map((item, idx) => `
+      <div class="nets-cmd-item ${idx === 0 ? 'active' : ''}" data-route="${item.route}">
+        <span class="nets-cmd-item-icon">${icon(item.icon, '#2DAAE1', 18)}</span>
+        <div class="nets-cmd-item-info">
+          <span class="nets-cmd-item-title">${item.title}</span>
+          <span class="nets-cmd-item-badge">${item.type}</span>
+        </div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.nets-cmd-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const route = el.getAttribute('data-route');
+        closeCommandPalette();
+        if (route) window.location.hash = route;
+      });
+    });
+  }
+
+  // --- Modal Onboarding de Primera Visita ---
+  function checkFirstVisitOnboarding() {
+    const onboarded = localStorage.getItem(STORAGE_KEYS.ONBOARDED);
+    if (onboarded) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'nets-modal-backdrop fade-up';
+    overlay.id = 'nets-onboarding-modal';
+    overlay.innerHTML = `
+      <div class="nets-modal-card">
+        <div class="nets-modal-header">
+          <div class="nets-badge-pill">${icon('award', '#2DAAE1', 14)} Bienvenido a Nets Portal</div>
+          <button class="nets-btn-icon-ghost" id="btn-close-onboard">${icon('close', 'currentColor', 18)}</button>
+        </div>
+        <div class="nets-modal-body">
+          <h2 class="nets-modal-title">Ecosistema Empresarial Nets Colombia</h2>
+          <p class="nets-modal-desc">
+            Plataforma corporativa diseñada para la alta dirección y gestión omnicanal. Administre oportunidades comerciales, conversaciones de WhatsApp API, control de inventario y facturación electrónica DIAN con total fluidez.
+          </p>
+          <div class="nets-features-checklist">
+            <div class="nets-check-row">
+              <span class="nets-check-dot">${icon('check', '#2DAAE1', 14)}</span>
+              <span><strong>Pipeline B2B:</strong> Arrastre y suelte acuerdos comerciales entre 6 etapas auditadas.</span>
+            </div>
+            <div class="nets-check-row">
+              <span class="nets-check-dot">${icon('check', '#2DAAE1', 14)}</span>
+              <span><strong>WhatsApp Centralizado:</strong> Mensajería directa e inteligencia artificial de respuesta.</span>
+            </div>
+            <div class="nets-check-row">
+              <span class="nets-check-dot">${icon('check', '#2DAAE1', 14)}</span>
+              <span><strong>Atajo Global:</strong> Presione <kbd>Ctrl+K</kbd> o <kbd>Cmd+K</kbd> en cualquier vista para navegar al instante.</span>
+            </div>
+          </div>
+        </div>
+        <div class="nets-modal-footer">
+          <button class="nets-btn nets-btn-primary" id="btn-finish-onboard">Entendido, Iniciar Sesión de Trabajo</button>
+        </div>
       </div>
     `;
 
-    const installHtml = state.installPrompt ? `
-      <div class="pwa-bar" id="nets-pwa-bar">
-        <span>Instala Nets Company para acceso directo rápido</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button class="install-btn" id="btn-pwa-install">Instalar Nets Company</button>
-          <button class="close-btn" id="btn-pwa-dismiss" aria-label="Cerrar">${icon('close', '#fff', 18)}</button>
-        </div>
-      </div>
-    ` : '';
+    document.body.appendChild(overlay);
 
-    const sidebarItems = [
-      { name: 'Inicio', route: '#/home', icon: 'home' },
-      ...enabledApps.map(a => ({ name: a.name, route: a.route, icon: a.icon })),
-      { name: 'Administración', route: '#/apps', icon: 'apps' }
+    const close = () => {
+      localStorage.setItem(STORAGE_KEYS.ONBOARDED, 'true');
+      overlay.classList.add('nets-fade-out');
+      setTimeout(() => overlay.remove(), 260);
+      toast('Onboarding completado. Disfrute su experiencia Nets.', 'success');
+    };
+
+    overlay.querySelector('#btn-close-onboard').addEventListener('click', close);
+    overlay.querySelector('#btn-finish-onboard').addEventListener('click', close);
+  }
+
+  // --- Tema Oscuro / Claro ---
+  function initTheme() {
+    const saved = localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    document.documentElement.classList.toggle('dark', next === 'dark');
+    localStorage.setItem(STORAGE_KEYS.THEME, next);
+    toast(`Modo ${next === 'dark' ? 'oscuro' : 'claro'} activado`, 'info', 1800);
+    // Actualizar botón de vista si existe
+    const btn = document.getElementById('btn-toggle-theme');
+    if (btn) btn.innerHTML = icon(next === 'dark' ? 'sun' : 'moon', 'currentColor', 18);
+  }
+
+  // --- Banner ÚNICO: "Vista previa · Datos de demostración" + Instalar ---
+  function renderSingleTopBanner() {
+    let banner = document.getElementById('nets-top-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'nets-top-banner';
+      banner.className = 'nets-top-banner';
+      document.body.prepend(banner);
+    }
+
+    const showInstall = !!pwaInstallEvent;
+    banner.innerHTML = `
+      <div class="nets-banner-inner">
+        <span class="nets-banner-tag">MODO DEMO</span>
+        <span class="nets-banner-text">Vista previa · Datos de demostración</span>
+        ${showInstall ? `
+          <button id="nets-btn-pwa-install" class="nets-btn-banner-install">
+            ${icon('download', '#FFFFFF', 14)}
+            <span>Instalar</span>
+          </button>
+        ` : ''}
+      </div>
+    `;
+
+    if (showInstall) {
+      const btn = banner.querySelector('#nets-btn-pwa-install');
+      if (btn) {
+        btn.addEventListener('click', async () => {
+          if (!pwaInstallEvent) return;
+          pwaInstallEvent.prompt();
+          const { outcome } = await pwaInstallEvent.userChoice;
+          if (outcome === 'accepted') {
+            toast('Instalando Nets Enterprise en su dispositivo...', 'success');
+          }
+          pwaInstallEvent = null;
+          renderSingleTopBanner();
+        });
+      }
+    }
+  }
+
+  // --- Skeleton Loading Transición (400ms) ---
+  function runWithSkeleton(appContainer, renderCallback) {
+    appContainer.innerHTML = `
+      <div class="nets-skeleton-view fade-up">
+        <div class="nets-skel-header">
+          <div class="nets-skel-line nets-skel-title"></div>
+          <div class="nets-skel-line nets-skel-subtitle"></div>
+        </div>
+        <div class="nets-skel-grid">
+          <div class="nets-skel-card"></div>
+          <div class="nets-skel-card"></div>
+          <div class="nets-skel-card"></div>
+          <div class="nets-skel-card"></div>
+        </div>
+        <div class="nets-skel-board"></div>
+      </div>
+    `;
+
+    setTimeout(() => {
+      renderCallback();
+      appContainer.classList.add('ready');
+    }, 400);
+  }
+
+  // --- Layout Base: Sidebar Desktop + Header + Mobile Bottom Nav ---
+  function wrapLayout(viewTitle, viewSubtitle, contentHtml, activeRoute) {
+    const auth = getStoredAuth();
+    const enabledApps = getAppsState().filter(a => a.enabled);
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+    // Barra de navegación móvil inferior: Solo items habilitados principales
+    const bottomNavItems = [
+      { route: '#/home', iconName: 'home', label: 'Inicio' },
+      ...enabledApps.slice(0, 3).map(a => ({ route: a.route, iconName: a.icon, label: a.title })),
+      { route: '#/apps', iconName: 'apps', label: 'Apps' }
     ];
 
-    const sidebarHtml = `
-      <aside class="sidebar">
-        <div class="sidebar-logo-wrap">
-          <img src="logo-blanco.svg" alt="Nets Company" class="sidebar-logo" onerror="this.onerror=null;this.replaceWith(document.createTextNode('NETS COMPANY'));">
-        </div>
-        <nav class="sidebar-menu">
-          ${sidebarItems.map(item => {
-            const isActive = activeRoute === item.route;
-            const iconColor = isActive ? '#FFFFFF' : '#2DAAE1';
-            return `
-              <a href="${item.route}" class="sidebar-item ${isActive ? 'active' : ''}">
-                ${icon(item.icon, iconColor, 20)}
-                <span>${item.name}</span>
+    return `
+      <div class="nets-shell">
+        <!-- Sidebar Desktop -->
+        <aside class="nets-sidebar" aria-label="Navegación Principal">
+          <div class="nets-sidebar-brand">
+            <img src="logo-blanco.svg" alt="Nets" class="nets-sidebar-logo" onerror="this.outerHTML='<span class=\\'nets-logo-text\\'>NETS</span>'" />
+            <span class="nets-sidebar-edition">Enterprise</span>
+          </div>
+
+          <nav class="nets-sidebar-nav">
+            <div class="nets-sidebar-section-title">Principal</div>
+            <a href="#/home" class="nets-nav-link ${activeRoute === '#/home' ? 'active' : ''}">
+              ${icon('home', activeRoute === '#/home' ? '#2DAAE1' : 'currentColor', 18)}
+              <span>Inicio</span>
+            </a>
+
+            <div class="nets-sidebar-section-title">Módulos Activos</div>
+            ${enabledApps.map(app => `
+              <a href="${app.route}" class="nets-nav-link ${activeRoute === app.route ? 'active' : ''}">
+                ${icon(app.icon, activeRoute === app.route ? '#2DAAE1' : 'currentColor', 18)}
+                <span>${app.title}</span>
+                <span class="nets-nav-pill">${app.badge}</span>
               </a>
-            `;
-          }).join('')}
-        </nav>
-        <div class="sidebar-footer">
-          <div class="sidebar-user">
-            <div class="sidebar-avatar">${state.user.name.charAt(0)}</div>
-            <div>
-              <div class="sidebar-user-name">${state.user.name}</div>
-              <div class="sidebar-user-role">${state.user.role}</div>
+            `).join('')}
+
+            <div class="nets-sidebar-section-title">Configuración</div>
+            <a href="#/apps" class="nets-nav-link ${activeRoute === '#/apps' ? 'active' : ''}">
+              ${icon('apps', activeRoute === '#/apps' ? '#2DAAE1' : 'currentColor', 18)}
+              <span>Administración de apps</span>
+            </a>
+          </nav>
+
+          <div class="nets-sidebar-footer">
+            <div class="nets-user-brief">
+              <div class="nets-user-avatar">${auth ? auth.avatar : 'US'}</div>
+              <div class="nets-user-meta">
+                <span class="nets-user-name">${auth ? auth.name : 'Usuario'}</span>
+                <span class="nets-user-role">${auth ? auth.role : 'Corporativo'}</span>
+              </div>
+            </div>
+            <button class="nets-btn-logout-sidebar" id="btn-logout" title="Cerrar sesión">
+              ${icon('logout', 'currentColor', 16)}
+            </button>
+          </div>
+        </aside>
+
+        <!-- Main Wrapper -->
+        <div class="nets-main-wrapper">
+          <!-- Topbar -->
+          <header class="nets-topbar">
+            <div class="nets-topbar-left">
+              <button class="nets-search-trigger" id="btn-search-trigger">
+                ${icon('search', '#2DAAE1', 16)}
+                <span class="nets-search-placeholder">Buscar en Nets...</span>
+                <kbd class="nets-search-kbd">⌘K</kbd>
+              </button>
+            </div>
+
+            <div class="nets-topbar-right">
+              <div class="nets-streak-pill" title="Racha operativa activa">
+                ${icon('award', '#2DAAE1', 16)}
+                <span>14 días seguidos</span>
+              </div>
+
+              <button class="nets-btn-icon" id="btn-toggle-theme" title="Alternar tema">
+                ${icon(isDark ? 'sun' : 'moon', 'currentColor', 18)}
+              </button>
+
+              <div class="nets-mobile-avatar" id="btn-user-popover">
+                ${auth ? auth.avatar : 'US'}
+              </div>
+            </div>
+          </header>
+
+          <!-- View Header -->
+          <div class="nets-page-header fade-up">
+            <div class="nets-page-titles">
+              <h1 class="nets-page-title">${viewTitle}</h1>
+              <p class="nets-page-subtitle">${viewSubtitle}</p>
             </div>
           </div>
-          <button id="btn-logout" title="Cerrar sesión" style="background:transparent;display:flex;align-items:center;">
-            ${icon('logout', '#B3C5D7', 20)}
-          </button>
+
+          <!-- Page Content -->
+          <main class="nets-page-content">
+            ${contentHtml}
+          </main>
         </div>
-      </aside>
-    `;
 
-    // Bottom Nav: 4 ítems: Inicio, CRM, WhatsApp, Más (Más -> #/apps)
-    const isHome = activeRoute === '#/home';
-    const isCRM = activeRoute === '#/crm';
-    const isChat = activeRoute === '#/chat';
-    const isMore = activeRoute === '#/apps' || (!isHome && !isCRM && !isChat);
-
-    const bottomNavHtml = `
-      <nav class="bottom-nav">
-        <a href="#/home" class="bottom-nav-item ${isHome ? 'active' : ''}">
-          ${icon('home', isHome ? '#F58233' : '#3D5166', 22)}
-          <span>Inicio</span>
-        </a>
-        <a href="#/crm" class="bottom-nav-item ${isCRM ? 'active' : ''}">
-          ${icon('crm', isCRM ? '#F58233' : '#3D5166', 22)}
-          <span>CRM</span>
-        </a>
-        <a href="#/chat" class="bottom-nav-item ${isChat ? 'active' : ''}">
-          ${icon('chat', isChat ? '#F58233' : '#3D5166', 22)}
-          <span>WhatsApp</span>
-        </a>
-        <a href="#/apps" class="bottom-nav-item ${isMore ? 'active' : ''}">
-          ${icon('apps', isMore ? '#F58233' : '#3D5166', 22)}
-          <span>Más</span>
-        </a>
-      </nav>
-    `;
-
-    return `
-      ${bannerHtml}
-      ${installHtml}
-      <div class="app-layout">
-        ${sidebarHtml}
-        <main class="main-content">
-          ${contentHtml}
-        </main>
+        <!-- Mobile PWA Bottom Navigation (Activo #2DAAE1) -->
+        <nav class="nets-bottom-nav" aria-label="Navegación Móvil">
+          ${bottomNavItems.map(item => `
+            <a href="${item.route}" class="nets-bottom-nav-link ${activeRoute === item.route ? 'active' : ''}">
+              ${icon(item.iconName, activeRoute === item.route ? '#2DAAE1' : 'currentColor', 20)}
+              <span class="nets-bottom-nav-label">${item.label}</span>
+            </a>
+          `).join('')}
+        </nav>
       </div>
-      ${bottomNavHtml}
     `;
   }
 
-  // --- VISTA LOGIN ---
+  // --- Vista 1: Login (#/login) ---
   function renderLogin() {
     return `
-      <div class="demo-banner">Vista previa · Datos de demostración</div>
-      <div class="login-container">
-        <div class="login-box">
-          <img src="logo.svg" alt="Nets Company" class="login-logo" onerror="this.onerror=null;this.outerHTML='<h2 style=\\'text-align:center;color:#061E33;margin-bottom:20px;\\'>NETS COMPANY</h2>';">
-          <form id="form-login">
-            <div class="login-field">
-              <label for="login-email">Correo</label>
-              <input type="email" id="login-email" class="login-input" placeholder="Correo" required autocomplete="username" value="">
+      <div class="nets-auth-container fade-up">
+        <div class="nets-auth-card">
+          <div class="nets-auth-header">
+            <img src="logo.svg" alt="Nets Logo" class="nets-auth-logo" onerror="this.outerHTML='<h1 class=\\'nets-logo-text-big\\'>NETS</h1>'" />
+            <h2 class="nets-auth-title">Acceso al Portal Empresarial</h2>
+            <p class="nets-auth-subtitle">Ingrese con sus credenciales de red corporativa Nets Colombia</p>
+          </div>
+
+          <form id="nets-login-form" class="nets-auth-form">
+            <div class="nets-form-group">
+              <label for="login-email">Correo Electrónico Corporativo</label>
+              <input type="email" id="login-email" class="nets-input" value="gerardo.ortiz@nets.com.co" required />
             </div>
-            <div class="login-field">
-              <label for="login-pass">Contraseña</label>
-              <input type="password" id="login-pass" class="login-input" placeholder="Contraseña" required autocomplete="current-password" value="">
+
+            <div class="nets-form-group">
+              <label for="login-password">Contraseña Maestra</label>
+              <input type="password" id="login-password" class="nets-input" value="••••••••••••" required />
             </div>
-            <button type="submit" class="btn-primary" style="width:100%;margin-top:10px;">
-              Ingresar al portal
+
+            <div class="nets-auth-options">
+              <label class="nets-checkbox-label">
+                <input type="checkbox" checked id="remember-me" />
+                <span>Recordar sesión segura</span>
+              </label>
+              <a href="javascript:void(0)" class="nets-link" id="link-forgot-pw">¿Olvidó su clave?</a>
+            </div>
+
+            <button type="submit" class="nets-btn nets-btn-primary nets-btn-block">
+              Iniciar Sesión
             </button>
           </form>
+
+          <div class="nets-auth-footer">
+            <span>Infraestructura protegida con Nets Guard SOC 2 Tipo II</span>
+          </div>
         </div>
       </div>
     `;
   }
 
-  // --- VISTA INICIO (HOME) ---
+  // --- Vista 2: Home (#/home) ---
   function renderHome() {
-    const enabledApps = state.apps.filter(a => a.enabled);
-    const cardsHtml = enabledApps.map(app => `
-      <a href="${app.route}" class="home-card">
-        <div>
-          <div class="home-card-header">
-            <div class="home-card-icon-wrap">
-              ${icon(app.icon, '#2DAAE1', 24)}
+    const auth = getStoredAuth() || DEFAULT_USER;
+    const greeting = getGreeting(auth.shortName || 'Ger');
+    const enabledApps = getAppsState().filter(a => a.enabled);
+
+    const goalTarget = 450000000;
+    const goalCurrent = 384500000;
+    const goalPercent = Math.round((goalCurrent / goalTarget) * 100);
+
+    const contentHtml = `
+      <div class="nets-home-grid">
+        <!-- Saludo e Insignia -->
+        <section class="nets-welcome-card fade-up">
+          <div class="nets-welcome-info">
+            <div class="nets-badge-streak">
+              ${icon('award', '#2DAAE1', 14)}
+              <span>Racha Comercial: 14 días cumpliendo metas</span>
+            </div>
+            <h2 class="nets-welcome-greeting">${greeting}</h2>
+            <p class="nets-welcome-text">
+              El pipeline nacional registra un avance ponderado del <strong>${goalPercent}%</strong> respecto a la meta trimestral fijada para Colombia.
+            </p>
+          </div>
+
+          <!-- Meta Mensual Progress -->
+          <div class="nets-goal-box">
+            <div class="nets-goal-header">
+              <span class="nets-goal-label">Meta Mayo 2025</span>
+              <span class="nets-goal-values"><strong>${formatCOP(goalCurrent)}</strong> / ${formatCOP(goalTarget)}</span>
+            </div>
+            <div class="nets-progress-track">
+              <div class="nets-progress-fill" style="width: ${goalPercent}%"></div>
+            </div>
+            <div class="nets-goal-foot">
+              <span>Rendimiento +12.4% superior a abril</span>
+              <span>${goalPercent}%</span>
             </div>
           </div>
-          <div class="home-card-title">${app.name}</div>
-          <div class="home-card-desc">${app.desc}</div>
-        </div>
-        <div class="home-card-action">
-          <span>Abrir aplicación</span>
-          ${icon('back', '#2DAAE1', 14)}
-        </div>
-      </a>
-    `).join('');
+        </section>
 
-    return `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Bienvenido, ${state.user.name}</h1>
-          <p class="page-subtitle">Portal empresarial Nets Company · Colombia</p>
-        </div>
-        <a href="#/apps" class="btn-secondary">
-          ${icon('apps', '#061E33', 18)}
-          <span>Administración de aplicaciones</span>
-        </a>
-      </div>
-      <div class="home-grid">
-        ${cardsHtml}
-      </div>
-    `;
-  }
-
-  // --- VISTA CRM ---
-  function renderCRM() {
-    const boardHtml = state.crmStages.map(stage => {
-      const stageOpps = state.opportunities.filter(o => o.stage === stage);
-      const totalStage = stageOpps.reduce((acc, curr) => acc + curr.value, 0);
-
-      const cards = stageOpps.map(opp => `
-        <div class="crm-card">
-          <div class="crm-card-title">${opp.name}</div>
-          <div class="crm-card-contact">${opp.contact}</div>
-          <div class="crm-card-footer">
-            <div class="crm-card-value">${formatCOP(opp.value)}</div>
-            <div class="crm-card-date">${opp.date}</div>
-          </div>
-        </div>
-      `).join('');
-
-      return `
-        <div class="crm-col">
-          <div class="crm-col-header">
-            <span>${stage}</span>
-            <span class="crm-badge">${stageOpps.length}</span>
-          </div>
-          <div style="font-size:11px;color:#3D5166;margin-bottom:10px;font-weight:600;">
-            Total: ${formatCOP(totalStage)}
-          </div>
-          <div class="crm-cards">
-            ${cards || '<div style="font-size:12px;color:#8CA3BA;padding:8px 0;">Sin oportunidades</div>'}
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    return `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">CRM y Oportunidades</h1>
-          <p class="page-subtitle">Gestión de etapas comerciales y cotizaciones corporativas</p>
-        </div>
-        <button class="btn-primary" id="btn-nueva-opp">
-          <span>Nueva oportunidad</span>
-        </button>
-      </div>
-      <div class="crm-board">
-        ${boardHtml}
-      </div>
-    `;
-  }
-
-  // --- VISTA WHATSAPP ---
-  function renderWhatsApp() {
-    const activeConv = state.conversations.find(c => c.id === state.activeChatId) || state.conversations[0];
-    const isMobileDetail = state.mobileChatView;
-
-    const listHtml = state.conversations.map(conv => {
-      const isSelected = conv.id === activeConv.id;
-      const lastMsg = conv.messages[conv.messages.length - 1] || { text: '' };
-      return `
-        <div class="chat-item ${isSelected ? 'active' : ''}" data-chat-id="${conv.id}">
-          <div class="chat-item-top">
-            <span class="chat-item-name">${conv.contact}</span>
-            <span class="chat-item-time">${conv.time}</span>
-          </div>
-          <div class="chat-item-phone">${conv.phone}</div>
-          <div class="chat-item-snippet">${lastMsg.text}</div>
-        </div>
-      `;
-    }).join('');
-
-    const messagesHtml = activeConv.messages.map(msg => `
-      <div class="chat-bubble ${msg.sender === 'me' ? 'sent' : 'received'}">
-        <div>${msg.text}</div>
-        <div class="chat-bubble-time">${msg.time}</div>
-      </div>
-    `).join('');
-
-    return `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">WhatsApp</h1>
-          <p class="page-subtitle">Bandeja de atención comercial y servicio</p>
-        </div>
-      </div>
-      <div class="chat-wrapper">
-        <div class="chat-sidebar" style="${isMobileDetail ? 'display:none;' : 'display:flex;'}">
-          <div class="chat-sidebar-header">
-            <div class="chat-sidebar-title">Conversaciones</div>
-            <span style="font-size:12px;color:var(--nets-support);font-weight:600;">${state.conversations.length} activas</span>
-          </div>
-          <div class="chat-list">
-            ${listHtml}
-          </div>
-        </div>
-        <div class="chat-main" style="${isMobileDetail ? 'display:flex;' : ''}">
-          <div class="chat-main-header">
-            <button class="chat-back-btn" id="btn-chat-back">
-              ${icon('back', '#061E33', 18)}
-            </button>
-            <div style="flex:1;overflow:hidden;">
-              <div class="chat-main-title">${activeConv.contact}</div>
-              <div class="chat-main-phone">${activeConv.phone}</div>
+        <!-- 4 KPIs con Count-Up y Sparklines -->
+        <section class="nets-kpis-grid">
+          <div class="nets-kpi-card fade-up" style="animation-delay: 60ms">
+            <div class="nets-kpi-top">
+              <span class="nets-kpi-label">Ventas del Mes</span>
+              <span class="nets-kpi-icon">${icon('receipt', '#2DAAE1', 18)}</span>
+            </div>
+            <div class="nets-kpi-val" id="kpi-sales">0</div>
+            <div class="nets-kpi-bottom">
+              <span class="nets-pill-up">+18.2%</span>
+              <canvas class="nets-sparkline" id="spark-sales"></canvas>
             </div>
           </div>
-          <div class="chat-messages" id="chat-messages-container">
-            ${messagesHtml}
+
+          <div class="nets-kpi-card fade-up" style="animation-delay: 120ms">
+            <div class="nets-kpi-top">
+              <span class="nets-kpi-label">Oportunidades Nuevas</span>
+              <span class="nets-kpi-icon">${icon('crm', '#2DAAE1', 18)}</span>
+            </div>
+            <div class="nets-kpi-val" id="kpi-deals">0</div>
+            <div class="nets-kpi-bottom">
+              <span class="nets-pill-up">+7 activas</span>
+              <canvas class="nets-sparkline" id="spark-deals"></canvas>
+            </div>
           </div>
-          <form class="chat-input-bar" id="form-send-message">
-            <input type="text" id="chat-text-input" class="chat-input" placeholder="Escribe un mensaje..." required autocomplete="off">
-            <button type="submit" class="chat-send-btn" title="Enviar">
-              ${icon('send', '#ffffff', 18)}
-            </button>
+
+          <div class="nets-kpi-card fade-up" style="animation-delay: 180ms">
+            <div class="nets-kpi-top">
+              <span class="nets-kpi-label">Conversaciones Bot</span>
+              <span class="nets-kpi-icon">${icon('chat', '#2DAAE1', 18)}</span>
+            </div>
+            <div class="nets-kpi-val" id="kpi-chats">0</div>
+            <div class="nets-kpi-bottom">
+              <span class="nets-pill-up">99.2% SLA</span>
+              <canvas class="nets-sparkline" id="spark-chats"></canvas>
+            </div>
+          </div>
+
+          <div class="nets-kpi-card fade-up" style="animation-delay: 240ms">
+            <div class="nets-kpi-top">
+              <span class="nets-kpi-label">Cotizaciones Emitidas</span>
+              <span class="nets-kpi-icon">${icon('box', '#2DAAE1', 18)}</span>
+            </div>
+            <div class="nets-kpi-val" id="kpi-quotes">0</div>
+            <div class="nets-kpi-bottom">
+              <span class="nets-pill-up">34 radicadas</span>
+              <canvas class="nets-sparkline" id="spark-quotes"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- Accesos Rápidos y Apps Habilitadas -->
+        <section class="nets-home-split">
+          <div class="nets-home-column fade-up" style="animation-delay: 300ms">
+            <div class="nets-card-title-row">
+              <h3 class="nets-card-heading">Módulos Habilitados</h3>
+              <a href="#/apps" class="nets-link-action">Configurar apps</a>
+            </div>
+            <div class="nets-apps-compact-grid">
+              ${enabledApps.map(app => `
+                <a href="${app.route}" class="nets-app-compact-card">
+                  <div class="nets-app-compact-icon">${icon(app.icon, '#2DAAE1', 22)}</div>
+                  <div class="nets-app-compact-texts">
+                    <span class="nets-app-compact-name">${app.title}</span>
+                    <span class="nets-app-compact-desc">${app.desc}</span>
+                  </div>
+                </a>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="nets-home-column fade-up" style="animation-delay: 360ms">
+            <div class="nets-card-title-row">
+              <h3 class="nets-card-heading">Actividad Operativa Reciente</h3>
+              <span class="nets-tag-live">Bogotá HQ</span>
+            </div>
+            <div class="nets-activity-feed">
+              <div class="nets-activity-item">
+                <span class="nets-act-dot"></span>
+                <div class="nets-act-body">
+                  <p class="nets-act-title"><strong>Bancolombia S.A.</strong> avanzó a Negociación final.</p>
+                  <span class="nets-act-time">Hace 14 minutos · Auditoría Nets CRM</span>
+                </div>
+              </div>
+
+              <div class="nets-activity-item">
+                <span class="nets-act-dot"></span>
+                <div class="nets-act-body">
+                  <p class="nets-act-title"><strong>Celsia</strong> recibió propuesta de bot WhatsApp.</p>
+                  <span class="nets-act-time">Hace 1 hora · WhatsApp</span>
+                </div>
+              </div>
+              <div class="nets-activity-item">
+                <span class="nets-act-dot"></span>
+                <div class="nets-act-body">
+                  <p class="nets-act-title">Factura SETT-8921 validada ante la DIAN.</p>
+                  <span class="nets-act-time">Hoy 09:12 · Facturación</span>
+                </div>
+              </div>
+              <div class="nets-activity-item">
+                <span class="nets-act-dot"></span>
+                <div class="nets-act-body">
+                  <p class="nets-act-title">Stock crítico en UPS 3KVA — bodega Montevideo.</p>
+                  <span class="nets-act-time">Ayer · Inventario</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    `;
+    return wrapLayout('Inicio', 'Panel operativo Nets Colombia', contentHtml, '#/home');
+  }
+
+  const CRM_STAGES = [
+    { id: 'prospeccion', label: 'Pendiente' },
+    { id: 'calificacion', label: 'Calificación' },
+    { id: 'propuesta', label: 'Propuesta' },
+    { id: 'negociacion', label: 'Negociación' },
+    { id: 'ganado', label: 'Ganado' },
+    { id: 'perdido', label: 'Perdido' }
+  ];
+
+  function renderCrm() {
+    const deals = getDeals();
+    const board = CRM_STAGES.map(stage => {
+      const cards = deals.filter(d => d.stage === stage.id);
+      const sum = cards.reduce((a, d) => a + d.amount, 0);
+      return `
+        <div class="kanban-column nets-kanban-col" data-stage="${stage.id}">
+          <div class="kanban-column-header">
+            <span class="kanban-column-title">${stage.label}</span>
+            <span class="kanban-badge">${cards.length}</span>
+          </div>
+          <div class="muted" style="font-size:14px;margin:0 0 8px">${formatCOP(sum)}</div>
+          <div class="kanban-cards-stack" data-drop="${stage.id}">
+            ${cards.map(d => `
+              <article class="kanban-card" draggable="true" data-id="${d.id}">
+                <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+                  <div class="nets-user-avatar" style="width:32px;height:32px;font-size:12px;background:#E8F6FC;color:#2DAAE1">${d.initials}</div>
+                  <div>
+                    <div style="font-weight:600;font-size:14px">${d.client}</div>
+                    <div class="muted" style="font-size:14px">${d.tag} · ${d.days}d</div>
+                  </div>
+                </div>
+                <p style="font-size:14px;margin:0 0 8px;color:var(--muted)">${d.title}</p>
+                <strong style="color:var(--navy)">${formatCOP(d.amount)}</strong>
+              </article>
+            `).join('')}
+          </div>
+        </div>`;
+    }).join('');
+    const content = `
+      <section class="kanban-section">
+        <div class="kanban-board nets-kanban">${board}</div>
+      </section>`;
+    return wrapLayout('Oportunidades', 'Pipeline comercial · 6 etapas · arrastre para avanzar', content, '#/crm');
+  }
+
+  function renderChat() {
+    const chats = getChats();
+    const active = chats.find(c => c.id === activeChatId) || chats[0];
+    const list = chats.map(c => `
+      <button class="nets-chat-list-item ${c.id === active.id ? 'active' : ''}" data-chat="${c.id}" type="button">
+        <div class="nets-user-avatar" style="background:#E8F6FC;color:#2DAAE1">${c.avatar}</div>
+        <div style="flex:1;min-width:0;text-align:left">
+          <div style="display:flex;justify-content:space-between;gap:8px">
+            <strong style="font-size:14px">${c.name}</strong>
+            <span class="muted" style="font-size:14px">${c.lastTime}</span>
+          </div>
+          <div class="muted chat-preview" style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.company}</div>
+        </div>
+        ${c.unread ? `<span class="kanban-badge" style="background:#2DAAE1;color:#fff">${c.unread}</span>` : ''}
+      </button>`).join('');
+    const msgs = (active.messages || []).map(m => `
+      <div class="chat-bubble ${m.from === 'me' ? 'me' : 'them'}" style="align-self:${m.from==='me'?'flex-end':'flex-start'};background:${m.from==='me'?'#2DAAE1':'#fff'};color:${m.from==='me'?'#fff':'var(--text)'};padding:10px 14px;border-radius:18px;max-width:80%;font-size:14px;border:1px solid var(--border)">
+        ${m.text}
+        <div style="opacity:.7;font-size:12px;margin-top:4px">${m.time}</div>
+      </div>`).join('');
+    const content = `
+      <section class="nets-chat-layout" style="display:grid;grid-template-columns:minmax(260px,320px) 1fr;gap:16px;min-height:60vh">
+        <aside class="nets-card" style="padding:12px;display:${isMobileChatDetail?'none':'flex'};flex-direction:column;gap:6px;overflow:auto">${list}</aside>
+        <div class="nets-card" style="display:${(!isMobileChatDetail && window.innerWidth<800)?'none':'flex'};flex-direction:column;padding:0;overflow:hidden">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+            <button type="button" id="chat-back" class="nets-btn-icon" style="display:none">${icon('home','currentColor',18)}</button>
+            <div class="nets-user-avatar" style="background:#E8F6FC;color:#2DAAE1">${active.avatar}</div>
+            <div>
+              <strong>${active.name}</strong>
+              <div class="muted" style="font-size:14px">${active.company} · ${active.phone}</div>
+            </div>
+          </div>
+          <div id="chat-messages" style="flex:1;display:flex;flex-direction:column;gap:10px;padding:16px;overflow:auto;background:#F7FAFC">${msgs}</div>
+          <form id="chat-send-form" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)">
+            <input id="chat-input" class="nets-input" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px" placeholder="Escriba un mensaje…" autocomplete="off" />
+            <button class="btn-accent" type="submit">Enviar</button>
           </form>
         </div>
-      </div>
-    `;
+      </section>
+      <style>@media(max-width:800px){.nets-chat-layout{grid-template-columns:1fr!important}}</style>`;
+    return wrapLayout('WhatsApp', 'Bandeja omnicanal y bot Nets IA', content, '#/chat');
   }
 
-  // --- VISTA ADMINISTRACIÓN DE APLICACIONES ---
-  function renderAdminApps() {
-    const rowsHtml = state.apps.map(app => `
-      <div class="admin-row">
-        <div class="admin-row-left">
-          <div class="home-card-icon-wrap">
-            ${icon(app.icon, '#2DAAE1', 22)}
-          </div>
-          <div class="admin-row-info">
-            <h4>${app.name}</h4>
-            <p>${app.desc}</p>
-          </div>
-        </div>
-        <label class="switch">
-          <input type="checkbox" class="app-toggle" data-app-id="${app.id}" ${app.enabled ? 'checked' : ''}>
-          <span class="slider"></span>
-        </label>
-      </div>
-    `).join('');
-
-    return `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Administración de aplicaciones</h1>
-          <p class="page-subtitle">Activa o desactiva módulos disponibles en el entorno corporativo</p>
-        </div>
-      </div>
-      <div class="admin-table">
-        ${rowsHtml}
-      </div>
-    `;
-  }
-
-  // --- VISTAS SECUNDARIAS (Inventario, Facturación, Soporte) ---
-  function renderModulePage(title, subtitle, iconName, bodyText) {
-    return `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">${title}</h1>
-          <p class="page-subtitle">${subtitle}</p>
-        </div>
-      </div>
-      <div class="panel-card">
-        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
-          <div class="home-card-icon-wrap" style="width:52px;height:52px;">
-            ${icon(iconName, '#2DAAE1', 28)}
-          </div>
+  function renderApps() {
+    const apps = getAppsState();
+    const rows = apps.map(a => `
+      <div class="nets-card" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div>${icon(a.icon,'#2DAAE1',22)}</div>
           <div>
-            <h3 style="color:var(--nets-navy);font-size:18px;">Módulo habilitado</h3>
-            <p style="color:var(--nets-support);font-size:14px;">Operando bajo estándares de Nets Company</p>
+            <strong>${a.title}</strong>
+            <p class="muted app-card-desc" style="margin:4px 0 0;font-size:14px">${a.desc}</p>
           </div>
         </div>
-        <p style="color:var(--nets-support);margin-bottom:20px;line-height:1.6;">${bodyText}</p>
-        <button class="btn-primary" onclick="window.location.hash='#/home'">Volver al inicio</button>
-      </div>
-    `;
+        <label class="nets-toggle" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" data-app-toggle="${a.id}" ${a.enabled?'checked':''} />
+          <span class="muted" style="font-size:14px">${a.enabled?'Activa':'Inactiva'}</span>
+        </label>
+      </div>`).join('');
+    const content = `<div style="display:flex;flex-direction:column;gap:12px">${rows}</div>`;
+    return wrapLayout('Administración de aplicaciones', 'Active o pause módulos del portal sin tocar Odoo', content, '#/apps');
   }
 
-  // --- ATTACH EVENTOS SEGÚN VISTA ---
-  function attachViewEvents(hash) {
-    // Dismiss install bar
-    const btnDismiss = document.getElementById('btn-pwa-dismiss');
-    if (btnDismiss) {
-      btnDismiss.addEventListener('click', () => {
-        state.installPrompt = null;
+  function renderInventory() {
+    const rows = INITIAL_INVENTORY.map(i => `
+      <tr>
+        <td><strong>${i.sku}</strong></td>
+        <td class="muted" style="font-size:14px">${i.desc}</td>
+        <td>${i.stock}</td>
+        <td class="muted" style="font-size:14px">${i.bodega}</td>
+        <td>${formatCOP(i.cost)}</td>
+      </tr>`).join('');
+    const content = `
+      <div class="nets-card" style="overflow:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <thead><tr style="text-align:left;color:var(--muted)">
+            <th style="padding:10px">SKU</th><th>Descripción</th><th>Stock</th><th>Bodega</th><th>Costo</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    return wrapLayout('Inventario', 'Control multisede Colombia', content, '#/inventory');
+  }
+
+  function renderInvoice() {
+    const rows = INITIAL_INVOICES.map(f => `
+      <tr>
+        <td><strong>${f.prefix}-${f.number}</strong></td>
+        <td>${f.client}</td>
+        <td class="muted" style="font-size:14px">${f.nit}</td>
+        <td>${formatCOP(f.amount)}</td>
+        <td>${f.date}</td>
+        <td><span class="kanban-badge">${f.status}</span></td>
+      </tr>`).join('');
+    const content = `
+      <div class="nets-card" style="overflow:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <thead><tr style="text-align:left;color:var(--muted)">
+            <th style="padding:10px">Documento</th><th>Cliente</th><th>NIT</th><th>Valor</th><th>Fecha</th><th>Estado</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    return wrapLayout('Facturación DIAN', 'Emisión electrónica UBL 2.1', content, '#/invoice');
+  }
+
+  function renderSupport() {
+    const content = `
+      <div class="nets-card">
+        <p class="muted" style="font-size:14px">El módulo Casos y Soporte está desactivado. Actívelo en Administración de aplicaciones.</p>
+        <a class="btn-accent" href="#/apps" style="display:inline-block;margin-top:12px;text-decoration:none">Ir a apps</a>
+      </div>`;
+    return wrapLayout('Casos', 'Mesa de servicio ITIL', content, '#/support');
+  }
+
+  function attachViewEvents(route) {
+    const logout = document.getElementById('btn-logout');
+    if (logout) logout.onclick = () => { setStoredAuth(null); location.hash = '#/login'; router(); };
+
+    const theme = document.getElementById('btn-toggle-theme');
+    if (theme) theme.onclick = () => toggleTheme();
+
+    const search = document.getElementById('btn-search-trigger');
+    if (search) search.onclick = () => openCommandPalette();
+
+    if (route === '#/login') {
+      const form = document.getElementById('nets-login-form');
+      if (form) form.onsubmit = (e) => {
+        e.preventDefault();
+        setStoredAuth(DEFAULT_USER);
+        toast('Sesión iniciada', 'success');
+        location.hash = '#/home';
         router();
+      };
+    }
+
+    if (route === '#/home') {
+      countUp(document.getElementById('kpi-sales'), 384500000, 1200, true);
+      countUp(document.getElementById('kpi-deals'), 27, 1000, false);
+      countUp(document.getElementById('kpi-chats'), 1842, 1100, false);
+      countUp(document.getElementById('kpi-quotes'), 34, 900, false);
+      const sparks = [
+        ['spark-sales', [12,18,15,22,28,26,31]],
+        ['spark-deals', [4,6,5,8,7,9,11]],
+        ['spark-chats', [40,55,48,62,70,68,80]],
+        ['spark-quotes', [2,3,4,5,4,6,7]]
+      ];
+      sparks.forEach(([id, data]) => {
+        const el = document.getElementById(id);
+        if (el) renderSparkline(el, data);
       });
     }
 
-    // PWA install trigger
-    const btnInstall = document.getElementById('btn-pwa-install');
-    if (btnInstall && state.installPrompt) {
-      btnInstall.addEventListener('click', () => {
-        state.installPrompt.prompt();
-        state.installPrompt.userChoice.then(() => {
-          state.installPrompt = null;
-          router();
+    if (route === '#/crm') {
+      let dragId = null;
+      document.querySelectorAll('.kanban-card').forEach(card => {
+        card.addEventListener('dragstart', () => { dragId = card.dataset.id; card.style.opacity = '.5'; });
+        card.addEventListener('dragend', () => { card.style.opacity = '1'; });
+      });
+      document.querySelectorAll('[data-drop]').forEach(zone => {
+        zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.outline = '2px dashed #2DAAE1'; });
+        zone.addEventListener('dragleave', () => { zone.style.outline = 'none'; });
+        zone.addEventListener('drop', e => {
+          e.preventDefault();
+          zone.style.outline = 'none';
+          if (!dragId) return;
+          const deals = getDeals();
+          const deal = deals.find(d => d.id === dragId);
+          if (!deal) return;
+          const next = zone.dataset.drop;
+          deal.stage = next;
+          saveDeals(deals);
+          if (next === 'ganado') confetti(1500);
+          toast(next === 'ganado' ? '¡Oportunidad ganada!' : 'Etapa actualizada', 'success');
+          router(true);
         });
       });
     }
 
-    // Botón logout
-    const btnLogout = document.getElementById('btn-logout');
-    if (btnLogout) {
-      btnLogout.addEventListener('click', () => {
-        state.auth = false;
-        localStorage.setItem('nets_auth', 'false');
-        window.location.hash = '#/login';
-        router();
+    if (route === '#/chat') {
+      document.querySelectorAll('[data-chat]').forEach(btn => {
+        btn.onclick = () => {
+          activeChatId = btn.dataset.chat;
+          isMobileChatDetail = true;
+          router(true);
+        };
       });
-    }
-
-    // Login submit
-    const formLogin = document.getElementById('form-login');
-    if (formLogin) {
-      formLogin.addEventListener('submit', (e) => {
+      const form = document.getElementById('chat-send-form');
+      if (form) form.onsubmit = (e) => {
         e.preventDefault();
-        state.auth = true;
-        localStorage.setItem('nets_auth', 'true');
-        window.location.hash = '#/home';
-        router();
-      });
-    }
-
-    // Toggle de Apps
-    const toggles = document.querySelectorAll('.app-toggle');
-    toggles.forEach(chk => {
-      chk.addEventListener('change', (e) => {
-        const appId = e.target.getAttribute('data-app-id');
-        const targetApp = state.apps.find(a => a.id === appId);
-        if (targetApp) {
-          targetApp.enabled = e.target.checked;
-          saveAppsState();
-          // Si desactivó la app en la que estaba, redirigir a #/apps
-          router();
-        }
-      });
-    });
-
-    // CRM Nueva Oportunidad
-    const btnNuevaOpp = document.getElementById('btn-nueva-opp');
-    if (btnNuevaOpp) {
-      btnNuevaOpp.addEventListener('click', () => {
-        const client = prompt('Nombre de la empresa / cliente:');
-        if (!client) return;
-        const val = prompt('Valor estimado en COP:', '15000000');
-        state.opportunities.unshift({
-          id: 'opp-' + Date.now(),
-          name: client,
-          contact: 'Contacto comercial',
-          value: parseInt(val, 10) || 10000000,
-          stage: 'PENDIENTE',
-          date: 'Hoy, ' + new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true })
-        });
-        router();
-      });
-    }
-
-    // WhatsApp selección chat
-    const chatItems = document.querySelectorAll('.chat-item');
-    chatItems.forEach(el => {
-      el.addEventListener('click', () => {
-        const id = parseInt(el.getAttribute('data-chat-id'), 10);
-        state.activeChatId = id;
-        state.mobileChatView = true;
-        router();
-      });
-    });
-
-    // WhatsApp botón regresar en móvil
-    const btnChatBack = document.getElementById('btn-chat-back');
-    if (btnChatBack) {
-      btnChatBack.addEventListener('click', () => {
-        state.mobileChatView = false;
-        router();
-      });
-    }
-
-    // WhatsApp enviar mensaje
-    const formSendMsg = document.getElementById('form-send-message');
-    if (formSendMsg) {
-      formSendMsg.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const input = document.getElementById('chat-text-input');
-        const text = input.value.trim();
+        const input = document.getElementById('chat-input');
+        const text = (input.value || '').trim();
         if (!text) return;
-        const activeConv = state.conversations.find(c => c.id === state.activeChatId);
-        if (activeConv) {
-          const nowStr = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
-          activeConv.messages.push({
-            sender: 'me',
-            text: text,
-            time: nowStr
-          });
-          activeConv.time = nowStr;
-        }
+        const chats = getChats();
+        const chat = chats.find(c => c.id === activeChatId);
+        if (!chat) return;
+        chat.messages.push({ id: 'm' + Date.now(), from: 'me', text, time: 'Ahora' });
+        chat.lastTime = 'Ahora';
+        saveChats(chats);
         input.value = '';
-        router();
-        // Scroll al final
-        setTimeout(() => {
-          const container = document.getElementById('chat-messages-container');
-          if (container) container.scrollTop = container.scrollHeight;
-        }, 50);
+        router(true);
+      };
+    }
+
+    if (route === '#/apps') {
+      document.querySelectorAll('[data-app-toggle]').forEach(cb => {
+        cb.onchange = () => {
+          const apps = getAppsState();
+          const app = apps.find(a => a.id === cb.dataset.appToggle);
+          if (!app) return;
+          app.enabled = cb.checked;
+          saveAppsState(apps);
+          toast(app.enabled ? app.title + ' activada' : app.title + ' pausada', 'info');
+          router(true);
+        };
       });
     }
   }
 
-  function router() {
-    injectStyles();
-    const root = document.getElementById('app');
-    if (!root) return;
-    let hash = window.location.hash || '#/home';
-    if (!hash.startsWith('#/')) hash = '#/home';
-    const authed = state.auth === true || localStorage.getItem('nets_auth') === 'true';
-    state.auth = authed;
-    if (!authed && hash !== '#/login') { window.location.hash = '#/login'; return; }
-    if (authed && hash === '#/login') { window.location.hash = '#/home'; return; }
-    if (hash === '#/login') { root.innerHTML = renderLogin(); attachViewEvents(hash); return; }
-    let content = '';
-    switch (hash) {
-      case '#/home': content = renderHome(); break;
-      case '#/crm': content = renderCRM(); break;
-      case '#/chat': content = renderWhatsApp(); break;
-      case '#/apps': content = renderAdminApps(); break;
-      case '#/inventory': content = renderModulePage('Inventario', 'Control de bodegas', 'inventory', 'Módulo de inventario en demostración.'); break;
-      case '#/invoice': content = renderModulePage('Facturación', 'Factura electrónica DIAN', 'invoice', 'Módulo de facturación en demostración.'); break;
-      case '#/support': content = renderModulePage('Casos y Soporte', 'Mesa de ayuda', 'support', 'Módulo de soporte en demostración.'); break;
-      default: content = renderHome(); hash = '#/home';
+  function router(skipSkeleton) {
+    const root = document.getElementById('app') || document.body;
+    let hash = location.hash || '#/login';
+    if (!hash.startsWith('#/')) hash = '#/login';
+    const auth = getStoredAuth();
+    if (!auth && hash !== '#/login') {
+      location.hash = '#/login';
+      hash = '#/login';
     }
-    root.innerHTML = renderLayout(content, hash);
-    attachViewEvents(hash);
+    if (auth && hash === '#/login') {
+      location.hash = '#/home';
+      hash = '#/home';
+    }
+
+    const paint = () => {
+      let html = '';
+      if (hash === '#/login') html = renderLogin();
+      else if (hash === '#/home') html = renderHome();
+      else if (hash === '#/crm') html = renderCrm();
+      else if (hash === '#/chat') html = renderChat();
+      else if (hash === '#/apps') html = renderApps();
+      else if (hash === '#/inventory') html = renderInventory();
+      else if (hash === '#/invoice') html = renderInvoice();
+      else if (hash === '#/support') html = renderSupport();
+      else html = renderHome();
+
+      if (hash === '#/login') {
+        root.innerHTML = html;
+      } else {
+        root.innerHTML = html;
+      }
+      root.classList.add('ready');
+      renderSingleTopBanner();
+      attachViewEvents(hash);
+      checkFirstVisitOnboarding();
+    };
+
+    if (skipSkeleton || hash === '#/login') paint();
+    else runWithSkeleton(root, paint);
   }
 
-  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); state.installPrompt = e; });
-  if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{})); }
-  window.addEventListener('hashchange', router);
-  window.addEventListener('popstate', router);
-  window.addEventListener('DOMContentLoaded', router);
- })();
+  function boot() {
+    const theme = localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'dark') document.documentElement.classList.add('dark');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      pwaInstallEvent = e;
+      renderSingleTopBanner();
+    });
+
+    window.addEventListener('hashchange', () => router());
+    window.addEventListener('popstate', () => router());
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openCommandPalette();
+      }
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
+    if (!document.getElementById('app')) {
+      const app = document.createElement('div');
+      app.id = 'app';
+      document.body.appendChild(app);
+    }
+    if (!location.hash) location.hash = getStoredAuth() ? '#/home' : '#/login';
+    router();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();

@@ -1,9 +1,10 @@
-const CACHE_NAME = 'nets-portal-v1';
+const CACHE_NAME = 'nets-portal-v2';
 
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
   '/app.js',
+  '/styles.css',
   '/offline.html',
   '/manifest.webmanifest',
   '/logo.svg',
